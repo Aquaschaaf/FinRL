@@ -12,6 +12,11 @@ from finrl.meta.env_stock_trading.env_stocktrading_np import StockTradingEnv
 
 # construct environment
 
+def delete_keys_from_dict(d, ks):
+    for k in ks:
+        if k in d:
+            del d[k]
+    return d
 
 def train(
     start_date,
@@ -75,6 +80,25 @@ def train(
         model_config["lr"] = rllib_params["lr"]
         model_config["train_batch_size"] = rllib_params["train_batch_size"]
         model_config["gamma"] = rllib_params["gamma"]
+        # Why - i dont know
+        delete_keys = [
+            'lr_schedule',
+            'use_critic',
+            'use_gae',
+            'kl_coeff',
+            'num_sgd_iter',
+            'shuffle_sequences',
+            'sgd_minibatch_size',
+            'entropy_coeff',
+            'vf_loss_coeff',
+            'entropy_coeff_schedule',
+            'clip_param',
+            'lr_schedule',
+            'lr_schedule',
+            'lr_schedule',
+        ]
+        delete_keys_from_dict(model_config, delete_keys)
+
         # ray.shutdown()
         trained_model = agent_rllib.train_model(
             model=model,

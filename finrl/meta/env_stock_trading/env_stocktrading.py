@@ -219,6 +219,7 @@ class StockTradingEnv(gym.Env):
 
     def step(self, actions):
         self.terminal = self.day >= len(self.df.index.unique()) - 1
+        # If done
         if self.terminal:
             # print(f"Episode: {self.episode}")
             if self.make_plots:
@@ -301,18 +302,21 @@ class StockTradingEnv(gym.Env):
             return self.state, self.reward, self.terminal, {}
 
         else:
+            # action = Amount of stocks to buy/sell
             actions = actions * self.hmax  # actions initially is scaled between 0 to 1
-            actions = actions.astype(
-                int
-            )  # convert into integer because we can't by fraction of shares
+            actions = actions.astype(int)  # convert into integer because we can't by fraction of shares
+
+            # state = [Cash, Value of Stocks, Num of stocks in Depot]
             if self.turbulence_threshold is not None:
                 if self.turbulence >= self.turbulence_threshold:
                     actions = np.array([-self.hmax] * self.stock_dim)
             begin_total_asset = self.state[0] + sum(
-                np.array(self.state[1 : (self.stock_dim + 1)])
-                * np.array(self.state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)])
+                np.array(self.state[1 : (self.stock_dim + 1)])  # Current Prices?
+                * np.array(self.state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)])  # Amount in depot
             )
-            # print("begin_total_asset:{}".format(begin_total_asset))
+            # state_0 = self.state[0]  # Value
+            # state_1 = np.array(self.state[1: (self.stock_dim + 1)])
+            # state_2 = np.array(self.state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)])
 
             argsort_actions = np.argsort(actions)
             sell_index = argsort_actions[: np.where(actions < 0)[0].shape[0]]

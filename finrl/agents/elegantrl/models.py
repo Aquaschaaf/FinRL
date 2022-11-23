@@ -14,7 +14,7 @@ from elegantrl.train.run import train_and_evaluate
 
 # from elegantrl.agents import AgentA2C
 
-MODELS = {"ddpg": AgentDDPG, "td3": AgentTD3, "sac": AgentSAC, "ppo": AgentPPO}
+MODELS = {"ddpg": AgentDDPG.AgentDDPG(), "td3": AgentTD3.AgentTD3(), "sac": AgentSAC.AgentSAC(), "ppo": AgentPPO.AgentPPO()}
 OFF_POLICY_MODELS = ["ddpg", "td3", "sac"]
 ON_POLICY_MODELS = ["ppo"]
 # MODEL_KWARGS = {x: config.__dict__[f"{x.upper()}_PARAMS"] for x in MODELS.keys()}
@@ -60,7 +60,7 @@ class DRLAgent:
         agent = MODELS[model_name]
         if model_name not in MODELS:
             raise NotImplementedError("NotImplementedError")
-        model = Arguments(agent_class=agent, env=env)
+        model = Arguments(agent, env=env)
         model.if_off_policy = model_name in OFF_POLICY_MODELS
         if model_kwargs is not None:
             try:

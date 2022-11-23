@@ -64,7 +64,11 @@ class DRLAgent:
         elif model_name == "td3":
             model_config = model.TD3_DEFAULT_CONFIG.copy()
         else:
-            model_config = model.DEFAULT_CONFIG.copy()
+            # model_config = model.DEFAULT_CONFIG.copy()
+            print("[Me] WARING - Changed Config")
+            model_config = {}
+
+
         # pass env, log_level, price_array, tech_array, and turbulence_array to config
         model_config["env"] = self.env
         model_config["log_level"] = "WARN"
@@ -88,7 +92,8 @@ class DRLAgent:
             )  # Other Ray APIs will not work until `ray.init()` is called.
 
         if model_name == "ppo":
-            trainer = model.PPOTrainer(env=self.env, config=model_config)
+            trainer = model.Algorithm(env=self.env, config=model_config)
+            # trainer = model.PPOTrainer(env=self.env, config=model_config)
         elif model_name == "a2c":
             trainer = model.A2CTrainer(env=self.env, config=model_config)
         elif model_name == "ddpg":

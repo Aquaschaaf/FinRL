@@ -10,7 +10,6 @@ from stable_baselines3 import DDPG
 from stable_baselines3 import PPO
 from stable_baselines3 import SAC
 from stable_baselines3 import TD3
-from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.noise import OrnsteinUhlenbeckActionNoise
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -18,6 +17,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from finrl import config
 from finrl.meta.env_stock_trading.env_stocktrading import StockTradingEnv
 from finrl.meta.preprocessor.preprocessors import data_split
+import finrl.agents.stablebaselines3.callbacks as sb3_cbs
 
 MODELS = {"a2c": A2C, "ddpg": DDPG, "td3": TD3, "sac": SAC, "ppo": PPO}
 
@@ -27,23 +27,6 @@ NOISE = {
     "normal": NormalActionNoise,
     "ornstein_uhlenbeck": OrnsteinUhlenbeckActionNoise,
 }
-
-
-class TensorboardCallback(BaseCallback):
-    """
-    Custom callback for plotting additional values in tensorboard.
-    """
-
-    def __init__(self, verbose=0):
-        super().__init__(verbose)
-
-    def _on_step(self) -> bool:
-        try:
-            self.logger.record(key="train/reward", value=self.locals["rewards"][0])
-        except BaseException:
-            self.logger.record(key="train/reward", value=self.locals["reward"][0])
-        return True
-
 
 class DRLAgent:
     """Provides implementations for DRL algorithms
@@ -99,11 +82,22 @@ class DRLAgent:
             **model_kwargs,
         )
 
-    def train_model(self, model, tb_log_name, total_timesteps=5000):
+    def train_model(self, model, tb_log_name, total_timesteps=5000, model_dir=None, test_env=None, reset_timesteps=True):
+        callbacks = []
+        if tb_log_name is not None:
+            callbacks.append(sb3_cbs.TensorboardCallback())
+        # if model_dir is not None:
+        #     callbacks.append(sb3_cbs.EvalCallback())
+        if test_env is not None and model_dir is not None:
+            eval_freq = 10000
+            callbacks.append(sb3_cbs.get_write_checkpoint_cb(eval_freq, model_dir))
+            callbacks.append(sb3_cbs.get_eval_cb(test_env, model_dir, freq=eval_freq))
+
         model = model.learn(
             total_timesteps=total_timesteps,
             tb_log_name=tb_log_name,
-            callback=TensorboardCallback(),
+            callback=callbacks,
+            reset_num_timesteps=reset_timesteps
         )
         return model
 
