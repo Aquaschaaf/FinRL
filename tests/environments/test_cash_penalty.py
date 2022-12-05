@@ -6,7 +6,7 @@ import pytest
 from finrl.meta.env_stock_trading.env_stocktrading_cashpenalty import (
     StockTradingEnvCashpenalty,
 )
-from finrl.meta.preprocessor.yahoodownloader import YahooDownloader
+from finrl.data.preprocessor.yahoodownloader import YahooDownloader
 
 
 @pytest.fixture(scope="session")

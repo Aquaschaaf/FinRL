@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+BASELINE_TICKER = ["^DJI", "^GSPC"]
+
 SINGLE_TICKER = ["AAPL"]
 
 # Dow 30 constituents in 2021/10

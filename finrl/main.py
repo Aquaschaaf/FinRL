@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 from typing import List
 
 from finrl.config import ALPACA_API_BASE_URL
-from finrl.config import DATA_SAVE_DIR
+from finrl.config import PREPRO_DATA_SAVE_DIR
 from finrl.config import ERL_PARAMS, RLlib_PARAMS
 from finrl.config import INDICATORS
 from finrl.config import RESULTS_DIR
@@ -18,7 +18,7 @@ from finrl.config import TRAIN_END_DATE
 from finrl.config import TRAIN_START_DATE
 from finrl.config import TRAINED_MODEL_DIR
 from finrl.config_tickers import DOW_30_TICKER, SINGLE_TICKER
-from finrl.meta.env_stock_trading.env_stocktrading_np import StockTradingEnv
+from finrl.environment.env_stock_trading.env_stocktrading_np import StockTradingEnv
 
 # construct environment
 

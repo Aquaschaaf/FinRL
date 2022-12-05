@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from finrl.meta.data_processors.processor_alpaca import AlpacaProcessor
+from finrl.data.data_processors import AlpacaProcessor
 
 
 API_KEY = "???"

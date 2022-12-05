@@ -1,23 +1,35 @@
 # directory
 from __future__ import annotations
 
-DATA_SAVE_DIR = "datasets"
+RAW_DATA_SAVE_DIR = "datasets/raw"
+PREPRO_DATA_SAVE_DIR = "datasets/preprocessed"
 TRAINED_MODEL_DIR = "trained_models"
 TENSORBOARD_LOG_DIR = "tensorboard_log"
 RESULTS_DIR = "results"
+DIRS = [RAW_DATA_SAVE_DIR, PREPRO_DATA_SAVE_DIR, TRAINED_MODEL_DIR, TENSORBOARD_LOG_DIR, RESULTS_DIR]
 
-# date format: '%Y-%m-%d'
+TICKERS = "DOW_30"
+TEST = True
+MODEL = "ppo"
+TRAIN_NEW_AGENT = True
+RETRAIN_AGENT = False
+TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_test_1670243794"
+TRAIN_TIMESTEPS = 10
+
+# Date setting
 TRAIN_START_DATE = "2014-01-06"  # bug fix: set Monday right, start date set 2014-01-01 ValueError: all the input array dimensions for the concatenation axis must match exactly, but along dimension 0, the array at index 0 has size 1658 and the array at index 1 has size 1657
 TRAIN_END_DATE = "2020-07-31"
-
 TEST_START_DATE = "2020-08-01"
 TEST_END_DATE = "2021-10-01"
-
 TRADE_START_DATE = "2021-11-01"
 TRADE_END_DATE = "2022-11-01"
 
-# stockstats technical indicator column names
-# check https://pypi.org/project/stockstats/ for different names
+# Environment settings
+ENV_HMAX = 100
+ENV_INIT_AMNT = 1000000
+ENV_REWARD_SCALE = 1e-4
+
+# stockstats technical indicator column names (check https://pypi.org/project/stockstats/ for different names)
 INDICATORS = [
     "macd",
     "boll_ub",
@@ -29,15 +41,15 @@ INDICATORS = [
     "close_60_sma",
 ]
 
-
 # Model Parameters
 A2C_PARAMS = {"n_steps": 5, "ent_coef": 0.01, "learning_rate": 0.0007}
 PPO_PARAMS = {
     "n_steps": 2048,
     "ent_coef": 0.01,
     "learning_rate": 0.00025,
-    "batch_size": 64,
+    "batch_size": 128,
 }
+
 DDPG_PARAMS = {"batch_size": 128, "buffer_size": 50000, "learning_rate": 0.001}
 TD3_PARAMS = {"batch_size": 100, "buffer_size": 1000000, "learning_rate": 0.001}
 SAC_PARAMS = {
@@ -59,6 +71,7 @@ ERL_PARAMS = {
 }
 RLlib_PARAMS = {"lr": 5e-5, "train_batch_size": 500, "gamma": 0.99}
 
+MODEL_PARAMS = {"ppo":PPO_PARAMS, "a2c": A2C_PARAMS, "sac": SAC_PARAMS}
 
 # Possible time zones
 TIME_ZONE_SHANGHAI = "Asia/Shanghai"  # Hang Seng HSI, SSE, CSI
@@ -74,3 +87,5 @@ ALPACA_API_KEY = "xxx"  # your ALPACA_API_KEY
 ALPACA_API_SECRET = "xxx"  # your ALPACA_API_SECRET
 ALPACA_API_BASE_URL = "https://paper-api.alpaca.markets"  # alpaca url
 BINANCE_BASE_URL = "https://data.binance.vision/"  # binance url
+
+

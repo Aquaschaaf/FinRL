@@ -99,7 +99,7 @@ class JoinQuantEngineer:
 if __name__ == "__main__":
     import sys
 
-    sys.path.append("..")
+    sys.path.append("../../meta")
     # from finrl.neo_finrl.neofinrl_config import TRADE_START_DATE
     # from finrl.neo_finrl.neofinrl_config import TRADE_END_DATE
     # from finrl.neo_finrl.neofinrl_config import READ_DATA_FROM_LOCAL

@@ -1,5 +1,9 @@
 # Custom config
-#results/
+results/
+trained_models/
+venv/
+datasets/
+config_private.py
 
 # remove DS_Store
 **/.DS_Store

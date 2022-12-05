@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from finrl.config import INDICATORS
-from finrl.config import RLlib_PARAMS
 from finrl.config import TEST_END_DATE
 from finrl.config import TEST_START_DATE
 from finrl.config_tickers import DOW_30_TICKER
-from finrl.meta.env_stock_trading.env_stocktrading import StockTradingEnv
+from finrl.environment.env_stock_trading.env_stocktrading import StockTradingEnv
 
 
 def test(
@@ -23,7 +22,7 @@ def test(
 ):
 
     # import data processor
-    from finrl.meta.data_processor import DataProcessor
+    from finrl.data.data_processor import DataProcessor
 
     # fetch data
     dp = DataProcessor(data_source, **kwargs)

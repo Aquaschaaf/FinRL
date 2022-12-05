@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import datetime
-from multiprocessing.sharedctypes import Value
 
 import numpy as np
 import pandas as pd
 from stockstats import StockDataFrame as Sdf
 
 from finrl import config
-from finrl.meta.preprocessor.yahoodownloader import YahooDownloader
+from finrl.data.preprocessor.yahoodownloader import YahooDownloader
 
 
 def load_dataset(*, file_name: str) -> pd.DataFrame:
