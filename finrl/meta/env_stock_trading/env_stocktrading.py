@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from gym import spaces
 from gym.utils import seeding
+from finrl.plot import plot_actions
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 matplotlib.use("Agg")
@@ -397,6 +398,7 @@ class StockTradingEnv(gym.Env):
         return self.state
 
     def render(self, mode="human", close=False):
+        # plot_actions(self.df, self.actions_memory)
         return self.state
 
     def _initiate_state(self):

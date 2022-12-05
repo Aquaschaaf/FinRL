@@ -33,8 +33,7 @@ from pprint import pprint
 
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.collections as mc
-from matplotlib import gridspec
+
 import numpy as np
 import pandas as pd
 import time
@@ -51,7 +50,7 @@ from finrl.meta.preprocessor.yahoodownloader import YahooDownloader
 from finrl.plot import backtest_plot
 from finrl.plot import backtest_stats
 from finrl.plot import get_baseline
-from finrl.plot import get_daily_return
+from finrl.plot import plot_actions
 
 matplotlib.use('TkAgg')
 # %matplotlib inline
@@ -92,8 +91,8 @@ def get_last_checkpoint(dir, num_ckpt_idx=2):
 
         return max_ckpt_file
 
-MODEL = "SAC"
-TRAIN_NEW_AGENT = False
+MODEL = "PPO"
+TRAIN_NEW_AGENT = True
 RETRAIN_AGENT = False
 TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_1669112226/rl_model_740000_steps.zip"  # 490
 if TRAIN_NEW_AGENT == True or RETRAIN_AGENT == True:
@@ -336,7 +335,7 @@ if MODEL == "PPO":
     print(model_ppo)
     if TRAIN_NEW_AGENT:
         time_int = int(time.time())
-        TRAINED_MODEL_DIR = os.path.join(TRAINED_MODEL_DIR, 'ppo_{}'.format(time_int))
+        TRAINED_MODEL_DIR = os.path.join(TRAINED_MODEL_DIR, 'ppo_test_{}'.format(time_int))
         if not os.path.isdir(TRAINED_MODEL_DIR):
             os.mkdir(TRAINED_MODEL_DIR)
         tb_model_name = 'ppo_{}'.format(time_int)
@@ -349,7 +348,7 @@ if MODEL == "PPO":
     if TRAIN_NEW_AGENT or RETRAIN_AGENT:
         trained_ppo = agent.train_model(model=model_ppo,
                                         tb_log_name=tb_model_name,
-                                        total_timesteps=1000000,
+                                        total_timesteps=100000,
                                         model_dir=TRAINED_MODEL_DIR,
                                         test_env=e_test_gym,
                                         reset_timesteps=TRAIN_NEW_AGENT)  # 50000  1000000
@@ -419,69 +418,6 @@ df_account_value, df_actions = DRLAgent.DRL_prediction(model=trained_ppo, enviro
 print(f"df_account_value.shape: {df_account_value.shape}")
 print(f"df_account_value.tail(): {df_account_value.tail()}")
 print(f"df_actions.head(): {df_actions.head()}")
-
-def plot_actions(trade, df_actions):
-
-    stock_ticker = trade['tic'].unique()
-    gb = trade.groupby(['tic'])
-    stock_values = {}
-    for stock in stock_ticker:
-        actions = df_actions[stock].to_frame()
-        actions.columns = ["Action"]
-        actions.index = pd.to_datetime(actions.index)
-
-        stock_hist = gb.get_group(stock)
-        stock_hist.date = pd.to_datetime(stock_hist.date)
-        stock_hist.index = stock_hist.date
-        stock_hist.index = pd.to_datetime(stock_hist.index)
-
-        merge = pd.merge(stock_hist, actions, how='left', left_index=True, right_index=True)[["date", "close", "Action"]].values
-
-        total = np.cumsum(merge[:, -1], dtype=float)
-
-        buy_actions = np.argwhere(merge[:, -1] > 0).reshape((-1,))
-        sell_actions = np.argwhere(merge[:, -1] < 0).reshape((-1,))
-
-        buy_signals = merge[:, :2][buy_actions]
-        sell_signals = merge[:, :2][sell_actions]
-
-        invested = merge[:, 1][buy_actions] * merge[:, 2][buy_actions]
-        invested_sum = np.sum(invested)
-        return_of_sales = merge[:, 1][sell_actions] * np.abs(merge[:, 2][sell_actions])
-        return_of_sales_sum = np.sum(return_of_sales)
-        remaining_value = merge[-1, 1] * total[-2]
-        performance = remaining_value + return_of_sales_sum - invested_sum
-
-        plt.figure(figsize=(8, 6))
-        gs = gridspec.GridSpec(2, 1, height_ratios=[5, 1])
-        ax0 = plt.subplot(gs[0])
-
-        ax0.plot(merge[:, 0], merge[:, 1])
-        ax0.plot(buy_signals[:, 0], buy_signals[:, 1], 'og')
-        ax0.plot(sell_signals[:, 0], sell_signals[:, 1], 'or')
-        ax0.set_title("Perfromance: {0:.2f}".format(performance))
-
-        ax1 = plt.subplot(gs[1])
-        ax1.plot(merge[:, 0], total)
-
-        plt.suptitle("{}".format(stock))
-        plt.tight_layout()
-        plt.show()
-        plt.close()
-
-        stock_values[stock] = merge[:, 1] * total
-
-    plt.figure()
-    for stock, values in stock_values.items():
-        plt.plot(values, label='{}'.format(stock))
-        plt.text(len(values)-2, values[-2], '{}'.format(stock))
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
-              fancybox=True, shadow=True, ncol=5)
-    plt.tight_layout()
-    plt.show()
-
-
-
 
 plot_actions(trade, df_actions)
 

@@ -89,10 +89,14 @@ class DRLAgent:
         # if model_dir is not None:
         #     callbacks.append(sb3_cbs.EvalCallback())
         if test_env is not None and model_dir is not None:
-            eval_freq = 10000
+            eval_freq = 5000
             callbacks.append(sb3_cbs.get_write_checkpoint_cb(eval_freq, model_dir))
             callbacks.append(sb3_cbs.get_eval_cb(test_env, model_dir, freq=eval_freq))
 
+        callbacks.append(sb3_cbs.RenderCallback(test_env, model_dir, freq=eval_freq))
+
+        # for i in range(epochs):
+        #     print("\n\nEPOCH: ", i)
         model = model.learn(
             total_timesteps=total_timesteps,
             tb_log_name=tb_log_name,

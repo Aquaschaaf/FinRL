@@ -4,6 +4,7 @@ from copy import deepcopy
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 import numpy as np
 import pandas as pd
 import pyfolio
@@ -118,3 +119,76 @@ def trx_plot(df_trade, df_actions, ticker_list):
         plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=25))
         plt.xticks(rotation=45, ha="right")
         plt.show()
+
+
+
+def plot_actions(trade, df_actions):
+
+    stock_ticker = trade['tic'].unique()
+    gb = trade.groupby(['tic'])
+    stock_values = {}
+
+    num_rows = int(np.round(np.sqrt(len(stock_ticker))))
+    num_cols = int(np.ceil(np.sqrt(len(stock_ticker))))
+
+    fig = plt.figure(figsize=(16, 12))
+    gs = gridspec.GridSpec(num_rows, num_cols)  # height_ratios=[5, 1]
+
+
+    for i, stock in enumerate(stock_ticker):
+        actions = df_actions[stock].to_frame()
+        actions.columns = ["Action"]
+        actions.index = pd.to_datetime(actions.index)
+
+        stock_hist = gb.get_group(stock)
+        stock_hist.date = pd.to_datetime(stock_hist.date)
+        stock_hist.index = stock_hist.date
+        stock_hist.index = pd.to_datetime(stock_hist.index)
+
+        merge = pd.merge(stock_hist, actions, how='left', left_index=True, right_index=True)[["date", "close", "Action"]].values
+
+        total = np.cumsum(merge[:, -1], dtype=float)
+
+        buy_actions = np.argwhere(merge[:, -1] > 0).reshape((-1,))
+        sell_actions = np.argwhere(merge[:, -1] < 0).reshape((-1,))
+
+        buy_signals = merge[:, :2][buy_actions]
+        sell_signals = merge[:, :2][sell_actions]
+
+        invested = merge[:, 1][buy_actions] * merge[:, 2][buy_actions]
+        invested_sum = np.sum(invested)
+        return_of_sales = merge[:, 1][sell_actions] * np.abs(merge[:, 2][sell_actions])
+        return_of_sales_sum = np.sum(return_of_sales)
+        remaining_value = merge[-1, 1] * total[-2]
+        performance = remaining_value + return_of_sales_sum - invested_sum
+
+        ax = plt.subplot(gs[i])
+        ax.plot(merge[:, 0], merge[:, 1])
+        ax.plot(buy_signals[:, 0], buy_signals[:, 1], 'og')
+        ax.plot(sell_signals[:, 0], sell_signals[:, 1], 'or')
+        ax.set_title("{}".format(stock))
+
+        stock_values[stock] = merge[:, 1] * total
+
+
+    plt.tight_layout()
+    fig.canvas.draw()
+    # Now we can save it to a numpy array.
+    img_data_perstock = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    img_data_perstock = img_data_perstock.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+    fig = plt.figure()
+    for stock, values in stock_values.items():
+        plt.plot(values, label='{}'.format(stock))
+        plt.text(len(values)-2, values[-2], '{}'.format(stock))
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
+              fancybox=True, shadow=True, ncol=5)
+    plt.tight_layout()
+    fig.canvas.draw()
+    img_data_all = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    img_data_all = img_data_all.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+    return img_data_perstock, img_data_all
+
+
+
