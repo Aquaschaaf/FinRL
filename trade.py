@@ -127,7 +127,8 @@ agent = DRLAgent(env=e_trade_gym)
 model_params = config.MODEL_PARAMS[config.MODEL]
 model = agent.get_model(config.MODEL, policy="MlpPolicy", model_kwargs=model_params,
                         tensorboard_log=config.TENSORBOARD_LOG_DIR)
-# model = self.setup_model_for_retraining(model)
+model = model.load(config.TRAINED_AGENT_PATH)
+print("Loaded model: {}".format(config.TRAINED_AGENT_PATH))
 
 # Trade
 df_account_value, df_actions = DRLAgent.DRL_prediction(model=model, environment=e_trade_gym)

@@ -13,7 +13,7 @@ TEST = True
 MODEL = "ppo"
 TRAIN_NEW_AGENT = True
 RETRAIN_AGENT = False
-TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_test_1670243794"
+TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_1669112226/best_model.zip"
 TRAIN_TIMESTEPS = 10
 
 # Date setting
