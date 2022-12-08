@@ -1,34 +1,16 @@
 # directory
 from __future__ import annotations
+import os
 
-RAW_DATA_SAVE_DIR = "datasets/raw"
-PREPRO_DATA_SAVE_DIR = "datasets/preprocessed"
-TRAINED_MODEL_DIR = "trained_models"
-TENSORBOARD_LOG_DIR = "tensorboard_log"
-RESULTS_DIR = "results"
-DIRS = [RAW_DATA_SAVE_DIR, PREPRO_DATA_SAVE_DIR, TRAINED_MODEL_DIR, TENSORBOARD_LOG_DIR, RESULTS_DIR]
-
+# ============================================================================
+# ============================ Data ==========================================
+# ============================================================================
 TICKERS = "DOW_30"
-TEST = True
-MODEL = "ppo"
-TRAIN_NEW_AGENT = True
-RETRAIN_AGENT = False
-TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_1669112226/best_model.zip"
-TRAIN_TIMESTEPS = 10
-
-# Date setting
-TRAIN_START_DATE = "2014-01-06"  # bug fix: set Monday right, start date set 2014-01-01 ValueError: all the input array dimensions for the concatenation axis must match exactly, but along dimension 0, the array at index 0 has size 1658 and the array at index 1 has size 1657
-TRAIN_END_DATE = "2020-07-31"
-TEST_START_DATE = "2020-08-01"
-TEST_END_DATE = "2021-10-01"
-TRADE_START_DATE = "2021-11-01"
-TRADE_END_DATE = "2022-11-01"
-
-# Environment settings
-ENV_HMAX = 100
-ENV_INIT_AMNT = 1000000
-ENV_REWARD_SCALE = 1e-4
-
+DATA_INTERVAL = "5m"
+RAW_DATA_BASE_DIR = "datasets/raw"
+PREPRO_DATA_BASE_DIR = "datasets/preprocessed"
+RAW_DATA_SAVE_DIR = os.path.join(RAW_DATA_BASE_DIR, DATA_INTERVAL)
+PREPRO_DATA_SAVE_DIR = os.path.join(PREPRO_DATA_BASE_DIR, DATA_INTERVAL)
 # stockstats technical indicator column names (check https://pypi.org/project/stockstats/ for different names)
 INDICATORS = [
     "macd",
@@ -40,6 +22,39 @@ INDICATORS = [
     "close_30_sma",
     "close_60_sma",
 ]
+
+# ============================================================================
+# ============================ Dates =========================================
+# ============================================================================
+TRAIN_START_DATE = "2014-01-06"  # bug fix: set Monday right, start date set 2014-01-01 ValueError: all the input array dimensions for the concatenation axis must match exactly, but along dimension 0, the array at index 0 has size 1658 and the array at index 1 has size 1657
+TRAIN_END_DATE = "2020-07-31"
+TEST_START_DATE = "2020-08-01"
+TEST_END_DATE = "2021-10-01"
+TRADE_START_DATE = "2021-11-01"
+TRADE_END_DATE = "2015-01-06"
+# TRADE_END_DATE = "2022-11-01"
+
+# ============================================================================
+# ============================ Environment ===================================
+# ============================================================================
+ENV_HMAX = 100
+ENV_INIT_AMNT = 1000000
+ENV_REWARD_SCALE = 1e-4
+
+# ============================================================================
+# ============================ Model =========================================
+# ============================================================================
+TRAINED_MODEL_DIR = "trained_models"
+TENSORBOARD_LOG_DIR = "tensorboard_log"
+RESULTS_DIR = "results"
+
+TEST = True
+MODEL = "ppo"
+TRAIN_NEW_AGENT = True
+RETRAIN_AGENT = False
+TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_1669112226/best_model.zip"
+TRAIN_TIMESTEPS = 10
+
 
 # Model Parameters
 A2C_PARAMS = {"n_steps": 5, "ent_coef": 0.01, "learning_rate": 0.0007}
@@ -71,9 +86,10 @@ ERL_PARAMS = {
 }
 RLlib_PARAMS = {"lr": 5e-5, "train_batch_size": 500, "gamma": 0.99}
 
-MODEL_PARAMS = {"ppo":PPO_PARAMS, "a2c": A2C_PARAMS, "sac": SAC_PARAMS}
 
-# Possible time zones
+# ============================================================================
+# ============================ Timezones =====================================
+# ============================================================================
 TIME_ZONE_SHANGHAI = "Asia/Shanghai"  # Hang Seng HSI, SSE, CSI
 TIME_ZONE_USEASTERN = "US/Eastern"  # Dow, Nasdaq, SP
 TIME_ZONE_PARIS = "Europe/Paris"  # CAC,
@@ -82,10 +98,8 @@ TIME_ZONE_JAKARTA = "Asia/Jakarta"  # LQ45
 TIME_ZONE_SELFDEFINED = "xxx"  # If neither of the above is your time zone, you should define it, and set USE_TIME_ZONE_SELFDEFINED 1.
 USE_TIME_ZONE_SELFDEFINED = 0  # 0 (default) or 1 (use the self defined)
 
-# parameters for data sources
-ALPACA_API_KEY = "xxx"  # your ALPACA_API_KEY
-ALPACA_API_SECRET = "xxx"  # your ALPACA_API_SECRET
-ALPACA_API_BASE_URL = "https://paper-api.alpaca.markets"  # alpaca url
-BINANCE_BASE_URL = "https://data.binance.vision/"  # binance url
-
-
+# ============================================================================
+# ============================ Summarys ======================================
+# ============================================================================
+MODEL_PARAMS = {"ppo":PPO_PARAMS, "a2c": A2C_PARAMS, "sac": SAC_PARAMS}
+DIRS = [RAW_DATA_SAVE_DIR, PREPRO_DATA_SAVE_DIR, TRAINED_MODEL_DIR, TENSORBOARD_LOG_DIR, RESULTS_DIR]

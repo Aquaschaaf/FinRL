@@ -43,6 +43,7 @@ from finrl.plot import backtest_stats
 from finrl.plot import plot_actions
 from finrl.sb3_trainer import SB3Trainer
 import finrl.config as config
+import finrl.config_tickers as config_tickers
 
 
 matplotlib.use('TkAgg')
@@ -74,7 +75,9 @@ def check_and_make_directories(directories: list[str]):
 check_and_make_directories(config.DIRS)
 
 # Create Dataset and log information
-df = DatasetFactory(config.TICKERS).create_dataset()
+ticker_list_name = config.TICKERS
+ticker = config_tickers.TICKERS[config.TICKERS]
+df = DatasetFactory(ticker, ticker_list_name).create_dataset()
 train = data_split(df, config.TRAIN_START_DATE, config.TRAIN_END_DATE)
 test = data_split(df, config.TEST_START_DATE, config.TEST_END_DATE)
 trade = data_split(df, config.TRADE_START_DATE, config.TRADE_END_DATE)
