@@ -6,7 +6,7 @@ import os
 # ============================ Data ==========================================
 # ============================================================================
 TICKERS = "DOW_30"
-DATA_INTERVAL = "5m"
+DATA_INTERVAL = "1d"
 RAW_DATA_BASE_DIR = "datasets/raw"
 PREPRO_DATA_BASE_DIR = "datasets/preprocessed"
 RAW_DATA_SAVE_DIR = os.path.join(RAW_DATA_BASE_DIR, DATA_INTERVAL)
@@ -31,8 +31,8 @@ TRAIN_END_DATE = "2020-07-31"
 TEST_START_DATE = "2020-08-01"
 TEST_END_DATE = "2021-10-01"
 TRADE_START_DATE = "2021-11-01"
-TRADE_END_DATE = "2015-01-06"
-# TRADE_END_DATE = "2022-11-01"
+# TRADE_END_DATE = "2015-01-06"
+TRADE_END_DATE = "2022-12-15"
 
 # ============================================================================
 # ============================ Environment ===================================

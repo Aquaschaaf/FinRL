@@ -52,7 +52,8 @@ class YahooDownloader:
                 tic, start=self.start_date, end=self.end_date, proxy=proxy, interval=self.interval
             )
             temp_df["tic"] = tic
-            data_df = data_df.append(temp_df)
+            data_df = pd.concat([data_df, temp_df])
+            # data_df = data_df.append(temp_df)
         # reset the index, we want to use numbers as index instead of dates
         data_df = data_df.reset_index()
         try:
@@ -75,6 +76,8 @@ class YahooDownloader:
             print("the features are not supported currently")
         # create day of the week column (monday = 0)
         data_df["day"] = data_df["date"].dt.dayofweek
+        # create date and time column
+        data_df["datetime"] = data_df["date"]
         # convert date to standard string format, easy to filter
         data_df["date"] = data_df.date.apply(lambda x: x.strftime("%Y-%m-%d"))
         # drop missing data

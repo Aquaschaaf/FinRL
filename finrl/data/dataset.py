@@ -31,7 +31,7 @@ class DatasetFactory:
         self.name = '{}_{}_{}'.format(self.ticker_list_name, self.start_date, self.end_date)
         self.prepro_filename = os.path.join(config.PREPRO_DATA_SAVE_DIR, '{}'.format(self.name))
 
-    def load_and_update_raw_data(self, raw_data_file):
+    def load_and_update_raw_data(self, raw_data_file, ticker):
 
         df = pd.read_pickle(raw_data_file)
         # Check if Update is neccessary
@@ -42,14 +42,27 @@ class DatasetFactory:
 
         if diff > 4:
             logger.info("Doing data update (LastDate: '{}', Target date: '{}')".format(last_date, final_target_date))
-            update_df = YahooDownloader(
-                start_date=last_date.strftime("%Y-%m-%d"),
-                end_date=final_target_date.strftime("%Y-%m-%d"),
-                ticker_list=self.ticker,
-            ).fetch_data()
-            df = pd.concat(df, update_df)
-            logger.info("Last date of updated df: '{}'. Saving as '{}'".format(df.iloc[-1]['date'], self.raw_filename))
-            df.to_pickle(self.raw_filename)
+
+            if self.interval in ["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h"]:
+                update_df = self.download_data_intraday(last_date, final_target_date, ticker)
+
+            else:
+                update_df = YahooDownloader(
+                    start_date=last_date.strftime("%Y-%m-%d"),
+                    end_date=final_target_date.strftime("%Y-%m-%d"),
+                    ticker_list=[ticker],
+                    interval=self.interval
+                ).fetch_data()
+
+            full_df = pd.concat([df, update_df])
+            first_date = full_df.date.values[0]
+            last_date = full_df.date.values[-1]
+            out_name = os.path.join(self.raw_dir, '{}_{}_{}'.format(ticker, first_date, last_date))
+            logger.info("Saving new {} data as '{}'".format(self.interval, out_name))
+            full_df.to_pickle(out_name)
+            # Remove old file
+            os.remove(raw_data_file)
+
         else:
             logger.info("Raw data is recent enough for not doing update".format(raw_data_file))
 
@@ -73,9 +86,12 @@ class DatasetFactory:
             logger.info("Loading raw_data '{}' for updating".format(data[0]))
             return data[0]
 
-    def break_up_date_range(self, intv_size=50):
-        start = datetime.datetime.strptime(self.start_date, "%Y-%m-%d")
-        end = datetime.datetime.strptime(self.end_date, "%Y-%m-%d")
+    def break_up_date_range(self, start, end, intv_size=50):
+
+        if isinstance(start, str):
+            start = datetime.datetime.strptime(start, "%Y-%m-%d")
+        if isinstance(end, str):
+            end = datetime.datetime.strptime(end, "%Y-%m-%d")
         final_end = end
         n_intervals = int(np.ceil((end - start).days/intv_size))
         all_intervals = []
@@ -90,40 +106,59 @@ class DatasetFactory:
             all_intervals.append((start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")))
 
 
+    def download_data_intraday(self, start, end, t):
+
+
+
+        today = datetime.datetime.now()
+        dr = self.break_up_date_range(start, end)
+        full_df = pd.DataFrame()
+
+        if (today - datetime.datetime.strptime(start, "%Y-%m-%d")).days >= 60:
+            logger.warning("Skipping download of some intraday data (ticker: {} start {}) bc older than 60 days".format(
+                t, start))
+
+        for start_end in dr:
+
+            if (today - datetime.datetime.strptime(start_end[0], "%Y-%m-%d")).days >= 60:
+                continue
+
+            df = YahooDownloader(
+                start_date=start_end[0],
+                end_date=start_end[1],
+                ticker_list=[t],
+                interval=self.interval
+            ).fetch_data()
+            # If using tmp data, it should be checked if this is present to load
+            # tmp_out = os.path.join(self.raw_dir, "tmp", '{}_{}_{}'.format(t, start_end[0], start_end[1]))
+            # logger.info("Saving new tmp data as '{}'".format(self.raw_dir))
+            # df.to_pickle(tmp_out)
+            full_df = pd.concat([full_df, df])
+
+        return full_df
+
+
     def download_new_ticker_data(self, t):
         logger.info("Downlaoding new Dataset for ticker '{}'".format(self.ticker_list_name))
 
         if self.interval in ["1m","2m","5m","15m","30m","60m","90m","1h"]:
+            df = self.download_data_intraday(self.start_date, self.end_date, t)
 
-            dr = self.break_up_date_range()
-            full_df = pd.DataFrame()
-            for start_end in dr:
+        else:
 
-                df = YahooDownloader(
-                    start_date=start_end[0],
-                    end_date=start_end[1],
-                    ticker_list=self.ticker,
-                    interval=self.interval
-                ).fetch_data()
-                tmp_out = os.path.join(self.raw_dir, "tmp", '{}_{}_{}'.format(t, start_end[0], start_end[1]))
-                logger.info("Saving new tmp data as '{}'".format(self.raw_dir))
-                df.to_pickle(tmp_out)
-                full_df = pd.concat([full_df, df])
+            df = YahooDownloader(
+                start_date=self.start_date,
+                end_date=self.end_date,
+                ticker_list=[t],
+                # ticker_list=self.ticker,
+                interval=self.interval
+            ).fetch_data()
 
-            out_name = os.path.join(self.raw_dir, '{}_{}_{}'.format(t, self.start_date, self.end_date))
-            logger.info("Saving new {} data as '{}'".format(self.interval, out_name))
-            df.to_pickle(out_name)
-
-            exit()
-
-        df = YahooDownloader(
-            start_date=self.start_date,
-            end_date=self.end_date,
-            ticker_list=self.ticker,
-            interval=self.interval
-        ).fetch_data()
-        logger.info("Saving new datset as '{}'".format(self.raw_filename))
-        df.to_pickle(self.raw_filename)
+        first_date = df.date.values[0]
+        last_date = df.date.values[-1]
+        out_name = os.path.join(self.raw_dir, '{}_{}_{}'.format(t, first_date, last_date))
+        logger.info("Saving new {} data as '{}'".format(self.interval, out_name))
+        df.to_pickle(out_name)
 
         return df
 
@@ -135,14 +170,18 @@ class DatasetFactory:
         else:
             logger.info("No preprocessed dataset found. Assembling from Raw data")
 
+            df = pd.DataFrame()
             for ticker in self.ticker:
 
                 # Check if raw data for ticker typpe eixsts and extent if so
                 raw_data = self._check_raw_data(ticker)
                 if raw_data is not None:
-                    df = self.load_and_update_raw_data(raw_data)
+                    ticker_df = self.load_and_update_raw_data(raw_data, ticker)
                 else:
-                    df = self.download_new_ticker_data(ticker)
+                    ticker_df = self.download_new_ticker_data(ticker)
+
+                df = pd.concat([df, ticker_df])
+                df = df.reset_index(drop=True)
 
             logger.info("Preprocessing raw data")
             df = self.preprocess_data(df)
