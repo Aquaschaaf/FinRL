@@ -78,6 +78,7 @@ check_and_make_directories(config.DIRS)
 ticker_list_name = config.TICKERS
 ticker = config_tickers.TICKERS[config.TICKERS]
 df = DatasetFactory(ticker, ticker_list_name).create_dataset()
+
 train = data_split(df, config.TRAIN_START_DATE, config.TRAIN_END_DATE)
 test = data_split(df, config.TEST_START_DATE, config.TEST_END_DATE)
 trade = data_split(df, config.TRADE_START_DATE, config.TRADE_END_DATE)
@@ -118,14 +119,19 @@ env_kwargs = {
 # Turbulence indicators for trading - WHAT IS THIS DOING? ToDo
 data_risk_indicator = df[(df.date < config.TRADE_END_DATE) & (df.date >= config.TRAIN_START_DATE)]
 insample_risk_indicator = data_risk_indicator.drop_duplicates(subset=["date"])
-insample_risk_indicator.vix.describe()
-insample_risk_indicator.vix.quantile(0.996)
-insample_risk_indicator.turbulence.describe()
-insample_risk_indicator.turbulence.quantile(0.996)
+if config.USE_VIX:
+    insample_risk_indicator.vix.describe()
+    insample_risk_indicator.vix.quantile(0.996)
+if config.USE_TURBULENCE:
+    insample_risk_indicator.turbulence.describe()
+    insample_risk_indicator.turbulence.quantile(0.996)
+    t_thresh = 70
+else:
+    t_thresh = None
 
 e_train_gym = StockTradingEnv(df=train, **env_kwargs)
 e_test_gym = StockTradingEnv(df=test, **env_kwargs)
-e_trade_gym = StockTradingEnv(df=trade, turbulence_threshold=70, risk_indicator_col="vix", make_plots=True, **env_kwargs)
+e_trade_gym = StockTradingEnv(df=trade, turbulence_threshold=t_thresh, risk_indicator_col="vix", make_plots=True, **env_kwargs)
 
 ## Environment for Training
 env_train, _ = e_train_gym.get_sb_env()

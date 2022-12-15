@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-df = pd.read_pickle("/home/matthias/Projects/FinRL/datasets/raw/1d/DOW_30_2014-01-06_2022-11-01")
+df = pd.read_pickle("/home/matthias/Projects/FinRL/datasets/preprocessed/1d/DOW_30_2014-01-06_2022-12-15")
 
 print(df.head(10))
 

@@ -17,22 +17,35 @@ INDICATORS = [
     "boll_ub",
     "boll_lb",
     "rsi_30",
-    "cci_30",
+    "cci_30",  # Commented for testing reasons - Takes long to compute. Uncomment agian!
     "dx_30",
     "close_30_sma",
     "close_60_sma",
 ]
+CLEAN_STRATEGY = 'remove_cols' if not "m" in DATA_INTERVAL else "remove_rows"
+USE_VIX = True
+USE_TURBULENCE = True if not "m" in DATA_INTERVAL else False
 
 # ============================================================================
 # ============================ Dates =========================================
 # ============================================================================
+# SPLIT_AUTOMATIC = True
+# TEST_FRACTION = 0.15
+# VAL_FRACTION = 0.15
+
 TRAIN_START_DATE = "2014-01-06"  # bug fix: set Monday right, start date set 2014-01-01 ValueError: all the input array dimensions for the concatenation axis must match exactly, but along dimension 0, the array at index 0 has size 1658 and the array at index 1 has size 1657
 TRAIN_END_DATE = "2020-07-31"
 TEST_START_DATE = "2020-08-01"
 TEST_END_DATE = "2021-10-01"
 TRADE_START_DATE = "2021-11-01"
-# TRADE_END_DATE = "2015-01-06"
-TRADE_END_DATE = "2022-12-15"
+TRADE_END_DATE = "2022-12-14"
+# TRAIN_START_DATE = "2022-10-24"  # bug fix: set Monday right, start date set 2014-01-01 ValueError: all the input array dimensions for the concatenation axis must match exactly, but along dimension 0, the array at index 0 has size 1658 and the array at index 1 has size 1657
+# TRAIN_END_DATE = "2022-11-24"
+# TEST_START_DATE = "2022-11-25"
+# TEST_END_DATE = "2022-12-01"
+# TRADE_START_DATE = "2022-12-02"
+# TRADE_END_DATE = "2022-12-13"
+
 
 # ============================================================================
 # ============================ Environment ===================================

@@ -5,6 +5,9 @@ from __future__ import annotations
 
 import pandas as pd
 import yfinance as yf
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class YahooDownloader:
@@ -45,6 +48,9 @@ class YahooDownloader:
             7 columns: A date, open, high, low, close, volume and tick symbol
             for the specified stock ticker
         """
+        if self.start_date == self.end_date:
+            logger.warning("Start == End for download")
+
         # Download and save the data in a pandas DataFrame:
         data_df = pd.DataFrame()
         for tic in self.ticker_list:
@@ -74,6 +80,9 @@ class YahooDownloader:
             data_df = data_df.drop(labels="adjcp", axis=1)
         except NotImplementedError:
             print("the features are not supported currently")
+
+        if data_df.empty:
+            logger.warning("Downloaded Dataframe for ticker {} ({}-{}) is empty".format(tic, self.start_date, self.end_date))
         # create day of the week column (monday = 0)
         data_df["day"] = data_df["date"].dt.dayofweek
         # create date and time column

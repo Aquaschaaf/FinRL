@@ -25,6 +25,9 @@ class DatasetFactory:
         self.end_date = config.TRADE_END_DATE
         self.interval = config.DATA_INTERVAL
 
+        if True:
+            self.ticker += ["^VIX"]
+
         # Directory to save the raw ticker data to
         self.raw_dir = config.RAW_DATA_SAVE_DIR
         # Directory to save the preprocessed dataset
@@ -34,37 +37,55 @@ class DatasetFactory:
     def load_and_update_raw_data(self, raw_data_file, ticker):
 
         df = pd.read_pickle(raw_data_file)
+        # drop nans
+        df = df[df['close'].notna()]
+
         # Check if Update is neccessary
         last_date = df.iloc[-1]['date']
         last_date = datetime.datetime.strptime(last_date, "%Y-%m-%d")
         final_target_date = datetime.datetime.strptime(self.end_date, "%Y-%m-%d")
+        today = datetime.datetime.now().date()
         diff = (final_target_date - last_date).days
 
-        if diff > 4:
-            logger.info("Doing data update (LastDate: '{}', Target date: '{}')".format(last_date, final_target_date))
+        make_update = False
 
-            if self.interval in ["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h"]:
-                update_df = self.download_data_intraday(last_date, final_target_date, ticker)
+        # Update intrady data if the final date is todayis the current day
+        if final_target_date.date() == today and self.interval in ["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h"]:
+            update_df = self.download_data_intraday(last_date, final_target_date, ticker)
+            make_update = True
+
+        # Only update daily date if difference is > 4  # Todo change the this to tradeable dates and diff >1
+        else:
+            if diff > 4:
+                logger.info("Doing data update (LastDate: '{}', Target date: '{}')".format(
+                    last_date, final_target_date))
+
+                if self.interval in ["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h"]:
+                    update_df = self.download_data_intraday(last_date, final_target_date, ticker)
+                else:
+                    update_df = YahooDownloader(
+                        start_date=last_date.strftime("%Y-%m-%d"),
+                        end_date=final_target_date.strftime("%Y-%m-%d"),
+                        ticker_list=[ticker],
+                        interval=self.interval
+                    ).fetch_data()
+
+                make_update = True
 
             else:
-                update_df = YahooDownloader(
-                    start_date=last_date.strftime("%Y-%m-%d"),
-                    end_date=final_target_date.strftime("%Y-%m-%d"),
-                    ticker_list=[ticker],
-                    interval=self.interval
-                ).fetch_data()
+                logger.info("Raw data is recent enough for not doing update".format(raw_data_file))
 
+        if make_update:
             full_df = pd.concat([df, update_df])
+            # Drop duplicates
+            full_df = full_df.drop_duplicates(subset=['datetime'], keep='first')
             first_date = full_df.date.values[0]
             last_date = full_df.date.values[-1]
             out_name = os.path.join(self.raw_dir, '{}_{}_{}'.format(ticker, first_date, last_date))
             logger.info("Saving new {} data as '{}'".format(self.interval, out_name))
-            full_df.to_pickle(out_name)
             # Remove old file
             os.remove(raw_data_file)
-
-        else:
-            logger.info("Raw data is recent enough for not doing update".format(raw_data_file))
+            full_df.to_pickle(out_name)
 
         return df
 
@@ -100,21 +121,29 @@ class DatasetFactory:
                 start += datetime.timedelta(days=intv_size + 1)
             end = start + datetime.timedelta(days=intv_size)
             if end > final_end:
+
+                if start == final_end:
+                    # One day is duplicated. Should be removed later
+                    start -= datetime.timedelta(days=1)
+                    logger.warning("Encountered interval with start == end. Moving start one day back")
+
                 all_intervals.append((start.strftime("%Y-%m-%d"), final_end.strftime("%Y-%m-%d")))
                 return all_intervals
 
             all_intervals.append((start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")))
 
 
+
     def download_data_intraday(self, start, end, t):
-
-
 
         today = datetime.datetime.now()
         dr = self.break_up_date_range(start, end)
         full_df = pd.DataFrame()
 
-        if (today - datetime.datetime.strptime(start, "%Y-%m-%d")).days >= 60:
+        # ToDo do this check somewhere else globally for all stocks and nicer
+        if isinstance(start, str):
+            start = datetime.datetime.strptime(start, "%Y-%m-%d")
+        if (today - start).days >= 60:
             logger.warning("Skipping download of some intraday data (ticker: {} start {}) bc older than 60 days".format(
                 t, start))
 
@@ -181,10 +210,10 @@ class DatasetFactory:
                     ticker_df = self.download_new_ticker_data(ticker)
 
                 df = pd.concat([df, ticker_df])
-                df = df.reset_index(drop=True)
+                # df = df.reset_index(drop=True)
 
             logger.info("Preprocessing raw data")
-            df = self.preprocess_data(df)
+            df = self.preprocess_data(df, config.USE_VIX, config.USE_TURBULENCE)
             logger.info("Saving preprocessed data as '{}'".format(self.prepro_filename))
             df.to_pickle(self.prepro_filename)
 
@@ -195,20 +224,21 @@ class DatasetFactory:
         return df
 
 
-    def preprocess_data(self, df):
+    def preprocess_data(self, df, use_vix, use_turbulence):
         # """
         # # Part 4: Preprocess Data
         # Data preprocessing is a crucial step for training a high quality machine learning model. We need to check for missing data and do feature engineering in order to convert the data into a model-ready state.
         # * Add technical indicators. In practical trading, various information needs to be taken into account, for example the historical stock prices, current holding shares, technical indicators, etc. In this article, we demonstrate two trend-following technical indicators: MACD and RSI.
         # * Add turbulence index. Risk-aversion reflects whether an investor will choose to preserve the capital. It also influences one's trading strategy when facing different market volatility level. To control the risk in a worst-case scenario, such as financial crisis of 2007–2008, FinRL employs the financial turbulence index that measures extreme asset price fluctuation.
         # """
-
+        logger.info("Switched off turbulence")
         fe = FeatureEngineer(
             use_technical_indicator=True,
             tech_indicator_list=config.INDICATORS,
-            use_vix=True,
-            use_turbulence=True,
+            use_vix=use_vix,
+            use_turbulence=use_turbulence,
             user_defined_feature=False,
+            clean_strategy=config.CLEAN_STRATEGY
         )
 
         processed = fe.preprocess_data(df)
