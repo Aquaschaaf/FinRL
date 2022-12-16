@@ -191,7 +191,7 @@ class DatasetFactory:
 
         return df
 
-    def create_dataset(self):
+    def create_dataset(self, preprocess=True):
         # Check if a preprocessed_dataframe_exists
         if os.path.isfile(self.prepro_filename):
             logger.info("Loading preprocessed dataset '{}'".format(self.prepro_filename))
@@ -212,8 +212,9 @@ class DatasetFactory:
                 df = pd.concat([df, ticker_df])
                 # df = df.reset_index(drop=True)
 
-            logger.info("Preprocessing raw data")
-            df = self.preprocess_data(df, config.USE_VIX, config.USE_TURBULENCE)
+            if preprocess:
+                logger.info("Preprocessing raw data")
+                df = self.preprocess_data(df, config.USE_VIX, config.USE_TURBULENCE)
             logger.info("Saving preprocessed data as '{}'".format(self.prepro_filename))
             df.to_pickle(self.prepro_filename)
 

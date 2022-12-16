@@ -87,6 +87,12 @@ logger.info("Train data interval: {} - {}".format(train.head(1).date.values[0], 
 logger.info("Test data interval: {} - {}".format(test.head(1).date.values[0], test.tail(1).date.values[0]))
 logger.info("Trade data interval: {} - {}".format(trade.head(1).date.values[0], trade.tail(1).date.values[0]))
 logger.info("Using indicators: {}".format(config.INDICATORS))
+logger.info("Ticker contained in final DataFrame: {}".format(df.tic.unique()))
+remaining_nans = df[df.isnull().any(axis=1)]
+if not remaining_nans.empty:
+    logger.error("Remaining NaNs in DataFrame: {}".format(remaining_nans))
+    exit()
+
 
 # The action space describes the allowed actions that the agent interacts with the environment. Normally, action a
 # includes three actions: {-1, 0, 1}, where -1, 0, 1 represent selling, holding, and buying one share. Also, an action
@@ -160,7 +166,7 @@ perf_stats_all.to_csv("./" + config.RESULTS_DIR + "/perf_stats_all_" + now + ".c
 
 # baseline stats
 logger.info("==============Get Baseline Stats===========")
-baseline_df = DatasetFactory("BASELINE").create_baseline()
+baseline_df = DatasetFactory(config_tickers.BASELINE_TICKER, "BASELINE").create_dataset(preprocess=False)
 stats = backtest_stats(baseline_df, value_col_name="close")
 
 logger.info("==============Compare to DJIA===========")
