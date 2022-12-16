@@ -5,6 +5,7 @@ import os
 # ============================================================================
 # ============================ Data ==========================================
 # ============================================================================
+# TICKERS = "SINGLE"
 TICKERS = "DOW_30"
 DATA_INTERVAL = "1d"
 RAW_DATA_BASE_DIR = "datasets/raw"
@@ -51,8 +52,8 @@ TRADE_END_DATE = "2022-12-14"
 # ============================ Environment ===================================
 # ============================================================================
 ENV_HMAX = 100
-ENV_INIT_AMNT = 1000000
-ENV_REWARD_SCALE = 1e-4
+ENV_INIT_AMNT = 10000  # 1000000
+ENV_REWARD_SCALE = 0.01 # 1e-4
 
 # ============================================================================
 # ============================ Model =========================================
@@ -61,12 +62,12 @@ TRAINED_MODEL_DIR = "trained_models"
 TENSORBOARD_LOG_DIR = "tensorboard_log"
 RESULTS_DIR = "results"
 
-TEST = True
+TEST = False
 MODEL = "ppo"
-TRAIN_NEW_AGENT = True
-RETRAIN_AGENT = False
-TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_1669112226/best_model.zip"
-TRAIN_TIMESTEPS = 10
+TRAIN_NEW_AGENT = False
+RETRAIN_AGENT = True
+TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_1671207143_DOW_30_1d/rl_model_435000_steps.zip"
+TRAIN_TIMESTEPS = 1000000
 
 
 # Model Parameters

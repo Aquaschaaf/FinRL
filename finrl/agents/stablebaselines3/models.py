@@ -89,7 +89,7 @@ class DRLAgent:
         # if model_dir is not None:
         #     callbacks.append(sb3_cbs.EvalCallback())
         if test_env is not None and model_dir is not None:
-            eval_freq = 5000
+            eval_freq = 10000
             callbacks.append(sb3_cbs.get_write_checkpoint_cb(eval_freq, model_dir))
             callbacks.append(sb3_cbs.get_eval_cb(test_env, model_dir, freq=eval_freq))
 

@@ -145,7 +145,7 @@ env_train, _ = e_train_gym.get_sb_env()
 env_test, _ = e_test_gym.get_sb_env()
 
 # Train model
-model = SB3Trainer(env_train, env_test).train()
+model = SB3Trainer(env_train, e_test_gym).train()
 
 # Trade
 df_account_value, df_actions = DRLAgent.DRL_prediction(model=model, environment=e_trade_gym)

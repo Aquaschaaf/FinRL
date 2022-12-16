@@ -134,18 +134,22 @@ def plot_actions(trade, df_actions):
     fig = plt.figure(figsize=(16, 12))
     gs = gridspec.GridSpec(num_rows, num_cols)  # height_ratios=[5, 1]
 
+    if len(stock_ticker) == 1:
+        stock = stock_ticker[0]
+        actions = df_actions
+        actions.columns = ["date", "Action"]
+        actions["date"] = pd.to_datetime(actions["date"])
+        actions.index = actions["date"]
+        actions.drop(['date'], axis=1, inplace=True)
 
-    for i, stock in enumerate(stock_ticker):
-        actions = df_actions[stock].to_frame()
-        actions.columns = ["Action"]
-        actions.index = pd.to_datetime(actions.index)
 
         stock_hist = gb.get_group(stock)
         stock_hist.date = pd.to_datetime(stock_hist.date)
         stock_hist.index = stock_hist.date
         stock_hist.index = pd.to_datetime(stock_hist.index)
 
-        merge = pd.merge(stock_hist, actions, how='left', left_index=True, right_index=True)[["date", "close", "Action"]].values
+        merge = pd.merge(stock_hist, actions, how='left', left_index=True, right_index=True)
+        merge = merge[["date", "close", "Action"]].values
 
         total = np.cumsum(merge[:, -1], dtype=float)
 
@@ -162,13 +166,50 @@ def plot_actions(trade, df_actions):
         remaining_value = merge[-1, 1] * total[-2]
         performance = remaining_value + return_of_sales_sum - invested_sum
 
-        ax = plt.subplot(gs[i])
+        ax = plt.subplot(gs[0])
         ax.plot(merge[:, 0], merge[:, 1])
         ax.plot(buy_signals[:, 0], buy_signals[:, 1], 'og')
         ax.plot(sell_signals[:, 0], sell_signals[:, 1], 'or')
         ax.set_title("{}".format(stock))
 
         stock_values[stock] = merge[:, 1] * total
+
+
+    else:
+        for i, stock in enumerate(stock_ticker):
+            actions = df_actions[stock].to_frame()
+            actions.columns = ["Action"]
+            actions.index = pd.to_datetime(actions.index)
+
+            stock_hist = gb.get_group(stock)
+            stock_hist.date = pd.to_datetime(stock_hist.date)
+            stock_hist.index = stock_hist.date
+            stock_hist.index = pd.to_datetime(stock_hist.index)
+
+            merge = pd.merge(stock_hist, actions, how='left', left_index=True, right_index=True)[["date", "close", "Action"]].values
+
+            total = np.cumsum(merge[:, -1], dtype=float)
+
+            buy_actions = np.argwhere(merge[:, -1] > 0).reshape((-1,))
+            sell_actions = np.argwhere(merge[:, -1] < 0).reshape((-1,))
+
+            buy_signals = merge[:, :2][buy_actions]
+            sell_signals = merge[:, :2][sell_actions]
+
+            invested = merge[:, 1][buy_actions] * merge[:, 2][buy_actions]
+            invested_sum = np.sum(invested)
+            return_of_sales = merge[:, 1][sell_actions] * np.abs(merge[:, 2][sell_actions])
+            return_of_sales_sum = np.sum(return_of_sales)
+            remaining_value = merge[-1, 1] * total[-2]
+            performance = remaining_value + return_of_sales_sum - invested_sum
+
+            ax = plt.subplot(gs[i])
+            ax.plot(merge[:, 0], merge[:, 1])
+            ax.plot(buy_signals[:, 0], buy_signals[:, 1], 'og')
+            ax.plot(sell_signals[:, 0], sell_signals[:, 1], 'or')
+            ax.set_title("{}".format(stock))
+
+            stock_values[stock] = merge[:, 1] * total
 
 
     plt.tight_layout()

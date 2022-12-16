@@ -20,11 +20,11 @@ class SB3Trainer:
         if config.TRAIN_NEW_AGENT:
             time_int = int(time.time())
             if config.TEST:
-                model_dir = os.path.join(config.TRAINED_MODEL_DIR, '{}_test_{}'.format(config.MODEL, time_int))
-                tb_model_name = 'ppo_test_{}'.format(time_int)
+                model_dir = os.path.join(config.TRAINED_MODEL_DIR, '{}_test_{}_{}_{}'.format(config.MODEL, time_int, config.TICKERS, config.DATA_INTERVAL))
+                tb_model_name = 'ppo_test_{}_{}_{}'.format(time_int, config.TICKERS, config.DATA_INTERVAL)
             else:
-                model_dir = os.path.join(config.TRAINED_MODEL_DIR, '{}_{}'.format(config.MODEL, time_int))
-                tb_model_name = 'ppo_{}'.format(time_int)
+                model_dir = os.path.join(config.TRAINED_MODEL_DIR, '{}_{}_{}_{}'.format(config.MODEL, time_int, config.TICKERS, config.DATA_INTERVAL))
+                tb_model_name = 'ppo_{}_{}_{}'.format(time_int, config.TICKERS, config.DATA_INTERVAL)
             if not os.path.isdir(model_dir):
                 os.mkdir(model_dir)
 
