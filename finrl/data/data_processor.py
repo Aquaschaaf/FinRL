@@ -9,6 +9,9 @@ from finrl.data.data_processors.processor_yahoofinance import (
     YahooFinanceProcessor as YahooFinance,
 )
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class DataProcessor:
     def __init__(self, data_source, **kwargs):
@@ -75,3 +78,49 @@ class DataProcessor:
         tech_array[tech_inf_positions] = 0
 
         return price_array, tech_array, turbulence_array
+
+    @staticmethod
+    def normalize_data(df, indicators, window):
+
+        def rolling_norm(data, window):
+            mean = data.rolling(window, min_periods=1).mean()
+            std = data.rolling(window, min_periods=1).std()
+
+            return ((data - mean) / std)
+
+        rolling_normalize = ["boll_ub", "boll_lb"]
+        factor_normalize = {"rsi_30": 0.01, "cci_30": 0.01}
+        subtract_close = ["close_30_sma", "close_60_sma"]
+
+        for ind in indicators:
+
+            # fig, axs = plt.subplots(2, 1)
+            # plt.suptitle('{}'.format(ind))
+            # axs[0].plot(df["close"], label="close")
+
+            if ind in rolling_normalize:
+                df[ind] = rolling_norm(df[ind], window)
+
+            if ind in factor_normalize:
+                df[ind] = df[ind] * factor_normalize[ind]
+
+            if ind == "dx_30":
+                df[ind] *= 0.01
+                df[ind] -= 0.5
+
+            if ind in subtract_close:
+                df[ind] -= df["close"]
+                df[ind] = rolling_norm(df[ind], window)
+
+            remaining_nans = df[ind].isnull().any()
+            if remaining_nans:
+                logger.error("Remaining NaNs after preprcessing for indicator {}. Improve the handling of this. Check where and how many and if expected or nott: {}".format(ind, remaining_nans))
+
+
+        logger.info("Dropping Nans")
+        df = df.dropna()
+        df = df.reset_index(drop=True)
+
+        logger.info("Normalize data")
+
+        return df

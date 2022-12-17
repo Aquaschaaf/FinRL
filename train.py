@@ -38,6 +38,7 @@ from finrl.agents.stablebaselines3.models import DRLAgent
 from finrl.environment.env_stock_trading.env_stocktrading import StockTradingEnv
 from finrl.data.preprocessor.preprocessors import data_split
 from finrl.data.dataset import DatasetFactory
+from finrl.data.data_processor import DataProcessor
 from finrl.plot import backtest_plot
 from finrl.plot import backtest_stats
 from finrl.plot import plot_actions
@@ -93,6 +94,15 @@ if not remaining_nans.empty:
     logger.error("Remaining NaNs in DataFrame: {}".format(remaining_nans))
     exit()
 
+train = DataProcessor.normalize_data(train, config.INDICATORS, config.NORMALIZATION_WINDOW)
+test = DataProcessor.normalize_data(test, config.INDICATORS, config.NORMALIZATION_WINDOW)
+trade = DataProcessor.normalize_data(trade, config.INDICATORS, config.NORMALIZATION_WINDOW)
+for i, ds in enumerate([train, test, trade]):
+    ds = ds.dropna(axis=0, how='all')
+    remaining_nans = ds[ds.isnull().any(axis=1)]
+    if not remaining_nans.empty:
+        logger.error("Remaining NaNs in DataFrame {}: {} UU".format(i, remaining_nans))
+        exit()
 
 # The action space describes the allowed actions that the agent interacts with the environment. Normally, action a
 # includes three actions: {-1, 0, 1}, where -1, 0, 1 represent selling, holding, and buying one share. Also, an action

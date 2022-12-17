@@ -1,4 +1,7 @@
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Broker:
 
@@ -9,6 +12,9 @@ class Broker:
         self.buy_price_idxs = buy_price_idxs
         self.stock_dim = stock_dim
         self.transaction_cost = transaction_cost
+
+        if self.transaction_cost == 0:
+            logger.warning("Currently assuming NO transaction cost!!")
 
 
     def calculate_total_asset_value(self, state):

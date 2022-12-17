@@ -79,6 +79,7 @@ class StockTradingEnv(gym.Env):
         # initalize state
         self.state = self._initiate_state()
 
+        self.sold_shares = False
         self.cash_idx = 0
         self.price_idxs = np.array(range(1, self.stock_dim + 1))
         self.depot_idxs = np.array(range(self.stock_dim + 1, self.stock_dim * 2 + 1))
@@ -89,7 +90,7 @@ class StockTradingEnv(gym.Env):
                              buy_price_idxs=self.buy_price_idxs,
                              depot_idxs=self.depot_idxs,
                              stock_dim=self.stock_dim,
-                             transaction_cost=0.03)
+                             transaction_cost=0.03)  # 0.03
 
         # initialize reward
         self.reward = 0
@@ -137,6 +138,8 @@ class StockTradingEnv(gym.Env):
                 if abs(actions[index]) > 0:
                     self.trades += 1
 
+                self.sold_shares = True
+
             for index in buy_index:
                 # print('take buy action: {}'.format(actions[index]))
                 actions[index], depot, buy_prices, cost = self.broker.buy_stock(index, actions[index], self.state)
@@ -166,6 +169,9 @@ class StockTradingEnv(gym.Env):
         plt.close()
 
     def step(self, actions):
+
+
+        self.sold_shares = False
 
         self.terminal = self.day >= len(self.df.index.unique()) - 1
         # If done
@@ -299,9 +305,12 @@ class StockTradingEnv(gym.Env):
             self.asset_memory.append(end_total_asset)
             self.date_memory.append(self._get_date())
 
+            "https://ai.stackexchange.com/questions/10082/suitable-reward-function-for-trading-buy-and-sell-orders"
             self.reward = 0
             # self.reward = end_total_asset - begin_total_asset
             self.reward += trade_reward
+            # if self.sold_shares:
+            #     self.reward += 3
             self.rewards_memory.append(self.reward)
             self.reward = self.reward * self.reward_scaling
 

@@ -24,6 +24,7 @@ INDICATORS = [
     "close_30_sma",
     "close_60_sma",
 ]
+NORMALIZATION_WINDOW = 10
 CLEAN_STRATEGY = 'remove_cols' if not "m" in DATA_INTERVAL else "remove_rows"
 USE_VIX = True
 USE_TURBULENCE = True if not "m" in DATA_INTERVAL else False
@@ -54,7 +55,7 @@ TRADE_END_DATE = "2022-12-14"
 # ============================================================================
 ENV_HMAX = 100
 ENV_INIT_AMNT = 10000  # 1000000
-ENV_REWARD_SCALE = 0.01 # 1e-4
+ENV_REWARD_SCALE = 1.0 # 0.01 # 1e-4
 
 # ============================================================================
 # ============================ Model =========================================
@@ -63,7 +64,7 @@ TRAINED_MODEL_DIR = "trained_models"
 TENSORBOARD_LOG_DIR = "tensorboard_log"
 RESULTS_DIR = "results"
 
-TEST = False
+TEST = True
 MODEL = "ppo"
 TRAIN_NEW_AGENT = True
 RETRAIN_AGENT = False
