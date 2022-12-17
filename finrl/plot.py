@@ -229,6 +229,7 @@ def plot_actions(trade, df_actions):
     img_data_all = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
     img_data_all = img_data_all.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
+    plt.close('all')
     return img_data_perstock, img_data_all
 
 

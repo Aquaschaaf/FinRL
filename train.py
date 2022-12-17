@@ -104,7 +104,7 @@ if not remaining_nans.empty:
 
 stock_dimension = len(train.tic.unique())
 # State: Current Cash, Current amount of stock?, ?
-state_space = 1 + 2 * stock_dimension + len(config.INDICATORS) * stock_dimension
+state_space = 1 + 3 * stock_dimension + len(config.INDICATORS) * stock_dimension
 logger.info(f"Stock Dimension: {stock_dimension}, State Space: {state_space}")
 buy_cost_list = sell_cost_list = [0.001] * stock_dimension
 num_stock_shares = [0] * stock_dimension

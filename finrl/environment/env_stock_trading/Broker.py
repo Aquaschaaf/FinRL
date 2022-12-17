@@ -2,10 +2,11 @@ import numpy as np
 
 class Broker:
 
-    def __init__(self, cash_idx, price_idxs, depot_idxs, stock_dim, transaction_cost):
+    def __init__(self, cash_idx, price_idxs, depot_idxs, buy_price_idxs, stock_dim, transaction_cost):
         self.cash_idx = cash_idx
         self.price_idxs = price_idxs
         self.depot_idxs = depot_idxs
+        self.buy_price_idxs = buy_price_idxs
         self.stock_dim = stock_dim
         self.transaction_cost = transaction_cost
 
@@ -38,7 +39,18 @@ class Broker:
         return max_share
 
 
-    def buy_stock(self, index, amount, state, cap_pct=0.1):
+    def _update_buy_prices(self, buy_price, buy_num_shares, owned_shares, price):
+
+
+        both_prices = [buy_price, price]
+        both_amounts = [owned_shares, buy_num_shares]
+
+        weighted_avg = np.average(both_prices, weights=both_amounts)
+
+        return weighted_avg
+
+
+    def buy_stock(self, index, amount, state, cap_pct=None):
         """
     
         Parameters
@@ -51,52 +63,65 @@ class Broker:
     
         """
 
-        prices = np.array(state)[self.price_idxs]
-        depot = np.array(state)[self.depot_idxs]
+        price = np.array(state)[self.price_idxs][index]
+        owned_shares = np.array(state)[self.depot_idxs][index]
+        buy_price = np.array(state)[self.buy_price_idxs][index]
 
         # check if the stock is able to buy - buy only if the price is > 0 (no missing data in this particular date)
         if state[index + 2 * self.stock_dim + 1] != True:
 
-            # Check if enough cash is available - Dicide vaialbel cash by stock_price
-            possible_shares = int(state[self.cash_idx] // (prices[index] * (1 + self.transaction_cost)))
-            # Limit stock amouint to pct_ap
-            amnt_pct_cap = 1000 if cap_pct is None else self._get_max_amnt_pct_thresh(state, prices[index], depot[index], cap_pct)
 
+            # Check if enough cash is available - Dicide vaialbel cash by stock_price
+            possible_shares = int(state[self.cash_idx] // (price * (1 + self.transaction_cost)))
+            # Limit stock amouint to pct_ap
+            amnt_pct_cap = 1000 if cap_pct is None else self._get_max_amnt_pct_thresh(state, price, owned_shares, cap_pct)
             # Define how many stocks to buy
             buy_num_shares = min([possible_shares, amount, amnt_pct_cap])
+            # Update the buy prices based on wieghted mean if shares are supposed to be bought
+            if buy_num_shares > 0:
+                buy_price = self._update_buy_prices(buy_price, buy_num_shares, owned_shares, price)
             # Calculate the price of the transaction
-            buy_amount = prices[index] * buy_num_shares * (1 + self.transaction_cost)
+            buy_amount = price * buy_num_shares * (1 + self.transaction_cost)
             # Update the cash and the depot
             state[self.cash_idx] -= buy_amount
-            depot[index] += buy_num_shares
+            owned_shares += buy_num_shares
             # Calculate cost of this trade
-            transaction_cost = prices[index] * buy_num_shares * self.transaction_cost
+            transaction_cost = price * buy_num_shares * self.transaction_cost
         else:
             buy_num_shares = 0
             transaction_cost = 0
 
-        return buy_num_shares, depot, transaction_cost
+        depot = np.array(state)[self.depot_idxs]
+        depot[index] = owned_shares
+        buy_prices = np.array(state)[self.buy_price_idxs]
+        buy_prices[index] = buy_price
+
+        return buy_num_shares, depot, buy_prices, transaction_cost
 
     def sell_stock(self, index, amount, state):
 
-        prices = np.array(state)[self.price_idxs]
-        depot = np.array(state)[self.depot_idxs]
+        price = np.array(state)[self.price_idxs][index]
+        owned_shares = np.array(state)[self.depot_idxs][index]
+        buy_price = np.array(state)[self.buy_price_idxs][index]
 
         # check if the stock is able to sell, for simlicity we just add it in techical index
         if (state[index + 2 * self.stock_dim + 1] != True):
             # if state[index + 1] > 0: # if we use price<0 to denote a stock is unable to trade in that day, the total asset calculation may be wrong for the price is unreasonable
 
             # Sell only if current asset is > 0
-            if depot[index] > 0:
-                sell_num_shares = min(abs(amount), depot[index])
+            if owned_shares > 0:
+                sell_num_shares = min(abs(amount), owned_shares)
                 # Calculate the return of this sale
-                sell_amount = (prices[index] * sell_num_shares * (1 - self.transaction_cost))
+                sell_amount = (price * sell_num_shares * (1 - self.transaction_cost))
                 # update balance
                 state[self.cash_idx] += sell_amount
                 # Remove number of share from depot
-                depot[index] -= sell_num_shares
+                owned_shares -= sell_num_shares
+                # Reset buy_price if all shares of a stock are sold
+                if owned_shares == 0:
+                    buy_price = 0.0
                 # Keep track of trade cost and trades
-                transaction_cost = (prices[index] * sell_num_shares * self.transaction_cost)
+                transaction_cost = (price * sell_num_shares * self.transaction_cost)
             else:
                 sell_num_shares = 0
                 transaction_cost = 0
@@ -104,7 +129,13 @@ class Broker:
             sell_num_shares = 0
             transaction_cost = 0
 
-        return -sell_num_shares, depot, transaction_cost
+
+        depot = np.array(state)[self.depot_idxs]
+        depot[index] = owned_shares
+        buy_prices = np.array(state)[self.buy_price_idxs]
+        buy_prices[index] = buy_price
+
+        return -sell_num_shares, depot, buy_prices, transaction_cost
 
 
 

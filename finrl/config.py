@@ -5,8 +5,9 @@ import os
 # ============================================================================
 # ============================ Data ==========================================
 # ============================================================================
-# TICKERS = "SINGLE"
-TICKERS = "DOW_30"
+TICKERS = "SINGLE"
+# TICKERS = "CUSTOM"
+# TICKERS = "DOW_30"
 DATA_INTERVAL = "1d"
 RAW_DATA_BASE_DIR = "datasets/raw"
 PREPRO_DATA_BASE_DIR = "datasets/preprocessed"
@@ -64,10 +65,10 @@ RESULTS_DIR = "results"
 
 TEST = False
 MODEL = "ppo"
-TRAIN_NEW_AGENT = False
-RETRAIN_AGENT = True
-TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_1671207143_DOW_30_1d/rl_model_435000_steps.zip"
-TRAIN_TIMESTEPS = 1000000
+TRAIN_NEW_AGENT = True
+RETRAIN_AGENT = False
+TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_1671279017_SINGLE_1d/rl_model_850000_steps.zip"
+TRAIN_TIMESTEPS = 750000 # 1000000 #  750000
 
 
 # Model Parameters

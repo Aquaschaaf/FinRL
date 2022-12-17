@@ -82,8 +82,11 @@ class StockTradingEnv(gym.Env):
         self.cash_idx = 0
         self.price_idxs = np.array(range(1, self.stock_dim + 1))
         self.depot_idxs = np.array(range(self.stock_dim + 1, self.stock_dim * 2 + 1))
+        self.buy_price_idxs = np.array(range(self.stock_dim * 2 + 1, self.stock_dim * 3 + 1))
+        self.tech_indicator_start_idx = self.stock_dim * 3 + 1
         self.broker = Broker(cash_idx=self.cash_idx,
                              price_idxs=self.price_idxs,
+                             buy_price_idxs=self.buy_price_idxs,
                              depot_idxs=self.depot_idxs,
                              stock_dim=self.stock_dim,
                              transaction_cost=0.03)
@@ -127,16 +130,18 @@ class StockTradingEnv(gym.Env):
 
             for index in sell_index:
 
-                actions[index], depot, cost = self.broker.sell_stock(index, actions[index], self.state)
+                actions[index], depot, buy_prices, cost = self.broker.sell_stock(index, actions[index], self.state)
                 self.cost += cost
                 self.state[self.depot_idxs] = depot
+                self.state[self.buy_price_idxs] = buy_prices
                 if abs(actions[index]) > 0:
                     self.trades += 1
 
             for index in buy_index:
                 # print('take buy action: {}'.format(actions[index]))
-                actions[index], depot, cost = self.broker.buy_stock(index, actions[index], self.state)
+                actions[index], depot, buy_prices, cost = self.broker.buy_stock(index, actions[index], self.state)
                 self.state[self.depot_idxs] = depot
+                self.state[self.buy_price_idxs] = buy_prices
                 self.cost += cost
                 if abs(actions[index]) > 0:
                     self.trades += 1
@@ -258,10 +263,26 @@ class StockTradingEnv(gym.Env):
             begin_total_asset = self.calculate_total_asset_value()
 
             depot_before = self.state[self.depot_idxs]
+            buy_prices_before = self.state[self.buy_price_idxs]
             actions = self._update_depot(actions)
             self.actions_memory.append(actions)
             depot_after = self.state[self.depot_idxs]
+            buy_prices_after = self.state[self.buy_price_idxs]
 
+            # Rate sell tranactions -> Sell_price - Buy_price * Amount
+            sell_index = np.where(actions < 0)[0]
+            trade_reward = 0
+            for i in sell_index:
+                sell_price = self.state[self.price_idxs][i]
+                buy_price = buy_prices_before[i]
+                amount = abs(actions[i])
+                diff = sell_price - buy_price
+                perf = diff * amount
+
+                trade_reward += perf
+            trade_reward *= 10
+            trade_reward = np.max([trade_reward, 0])
+            # maybe the cehck if trade reaward > 100 or so. Set to 0 if not -> Incetivise profitable trades
 
             # state: s -> s+1
             self.day += 1
@@ -277,9 +298,13 @@ class StockTradingEnv(gym.Env):
 
             self.asset_memory.append(end_total_asset)
             self.date_memory.append(self._get_date())
-            self.reward = end_total_asset - begin_total_asset
+
+            self.reward = 0
+            # self.reward = end_total_asset - begin_total_asset
+            self.reward += trade_reward
             self.rewards_memory.append(self.reward)
             self.reward = self.reward * self.reward_scaling
+
             self.state_memory.append(
                 self.state
             )  # add current state in state_recorder for each step
@@ -330,28 +355,28 @@ class StockTradingEnv(gym.Env):
         if self.initial:
             # For Initial State
             if len(self.df.tic.unique()) > 1:
+                sum_tech = sum( (self.data[tech].values.tolist() for tech in self.tech_indicator_list ), [] , )
                 # for multiple stock
                 state = (
-                    [self.initial_amount]
-                    + self.data.close.values.tolist()
-                    + self.num_stock_shares
-                    + sum(
-                        (
-                            self.data[tech].values.tolist()
-                            for tech in self.tech_indicator_list
-                        ),
-                        [],
-                    )
+                    [self.initial_amount]                   # intital cash
+                    + self.data.close.values.tolist()       # close values
+                    + self.num_stock_shares                 # Number of share per stock
+                    + [0] * self.stock_dim                  # Buy prices
+                    + sum_tech                              # Not sure what this is
                 )  # append initial stocks_share to initial state, instead of all zero
             else:
                 # for single stock
                 state = (
-                    [self.initial_amount]
-                    + [self.data.close]
-                    + [0] * self.stock_dim
-                    + sum(([self.data[tech]] for tech in self.tech_indicator_list), [])
+                    [self.initial_amount]                   # intital cash
+                    + [self.data.close]                     # close values
+                    + [0] * self.stock_dim                  # Number of share per stock
+                    + [0] * self.stock_dim                  # Buy prices
+                    + sum(([self.data[tech]] for tech in self.tech_indicator_list), [])  # Not sure what this is
                 )
         else:
+
+            logger.error("USING NON INITIAL STATE SPACE INITITALIZATION: THIS WAS UPDATED AFTER ADDING BUY PRICE")
+            exit()
             # Using Previous State
             if len(self.df.tic.unique()) > 1:
                 # for multiple stock
@@ -388,6 +413,7 @@ class StockTradingEnv(gym.Env):
                 [self.state[0]]
                 + self.data.close.values.tolist()
                 + list(self.state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)])
+                + list(self.state[self.buy_price_idxs])
                 + sum(
                     (
                         self.data[tech].values.tolist()
@@ -403,6 +429,7 @@ class StockTradingEnv(gym.Env):
                 [self.state[0]]
                 + [self.data.close]
                 + list(self.state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)])
+                + list(self.state[self.buy_price_idxs])
                 + sum(([self.data[tech]] for tech in self.tech_indicator_list), [])
             )
 
