@@ -5,8 +5,8 @@ import os
 # ============================================================================
 # ============================ Data ==========================================
 # ============================================================================
-TICKERS = "SINGLE"
-# TICKERS = "CUSTOM"
+# TICKERS = "SINGLE"
+TICKERS = "CUSTOM"
 # TICKERS = "DOW_30"
 DATA_INTERVAL = "1d"
 RAW_DATA_BASE_DIR = "datasets/raw"
@@ -63,13 +63,14 @@ ENV_REWARD_SCALE = 1.0 # 0.01 # 1e-4
 TRAINED_MODEL_DIR = "trained_models"
 TENSORBOARD_LOG_DIR = "tensorboard_log"
 RESULTS_DIR = "results"
+MODEL_DESCRIPTION = "NoIdleEndReward"
 
 TEST = True
 MODEL = "ppo"
-TRAIN_NEW_AGENT = True
-RETRAIN_AGENT = False
-TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_1671279017_SINGLE_1d/rl_model_850000_steps.zip"
-TRAIN_TIMESTEPS = 750000 # 1000000 #  750000
+TRAIN_NEW_AGENT = False
+RETRAIN_AGENT = True
+TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_test_1671381209_CUSTOM_1d_NoIdleEndReward/rl_model_1580000_steps.zip"
+TRAIN_TIMESTEPS = 1500000 # 1000000 #  750000
 
 
 # Model Parameters

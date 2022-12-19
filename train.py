@@ -94,15 +94,16 @@ if not remaining_nans.empty:
     logger.error("Remaining NaNs in DataFrame: {}".format(remaining_nans))
     exit()
 
-train = DataProcessor.normalize_data(train, config.INDICATORS, config.NORMALIZATION_WINDOW)
-test = DataProcessor.normalize_data(test, config.INDICATORS, config.NORMALIZATION_WINDOW)
-trade = DataProcessor.normalize_data(trade, config.INDICATORS, config.NORMALIZATION_WINDOW)
-for i, ds in enumerate([train, test, trade]):
-    ds = ds.dropna(axis=0, how='all')
-    remaining_nans = ds[ds.isnull().any(axis=1)]
-    if not remaining_nans.empty:
-        logger.error("Remaining NaNs in DataFrame {}: {} UU".format(i, remaining_nans))
-        exit()
+logger.error("NOMAILIZATION CURRENTLY BRAKES CODE IN ENV FOR MULTISTOCK - THE RESET INDEX IS NOT GOOD")
+# train = DataProcessor.normalize_data(train, config.INDICATORS, config.NORMALIZATION_WINDOW)
+# test = DataProcessor.normalize_data(test, config.INDICATORS, config.NORMALIZATION_WINDOW)
+# trade = DataProcessor.normalize_data(trade, config.INDICATORS, config.NORMALIZATION_WINDOW)
+# for i, ds in enumerate([train, test, trade]):
+#     ds = ds.dropna(axis=0, how='all')
+#     remaining_nans = ds[ds.isnull().any(axis=1)]
+#     if not remaining_nans.empty:
+#         logger.error("Remaining NaNs in DataFrame {}: {} UU".format(i, remaining_nans))
+#         exit()
 
 # The action space describes the allowed actions that the agent interacts with the environment. Normally, action a
 # includes three actions: {-1, 0, 1}, where -1, 0, 1 represent selling, holding, and buying one share. Also, an action
@@ -145,7 +146,7 @@ if config.USE_TURBULENCE:
 else:
     t_thresh = None
 
-e_train_gym = StockTradingEnv(df=train, **env_kwargs)
+e_train_gym = StockTradingEnv(df=train, idle_threshold=15, **env_kwargs)
 e_test_gym = StockTradingEnv(df=test, **env_kwargs)
 e_trade_gym = StockTradingEnv(df=trade, turbulence_threshold=t_thresh, risk_indicator_col="vix", make_plots=True, **env_kwargs)
 

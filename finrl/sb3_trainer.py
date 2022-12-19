@@ -20,11 +20,11 @@ class SB3Trainer:
         if config.TRAIN_NEW_AGENT:
             time_int = int(time.time())
             if config.TEST:
-                model_dir = os.path.join(config.TRAINED_MODEL_DIR, '{}_test_{}_{}_{}'.format(config.MODEL, time_int, config.TICKERS, config.DATA_INTERVAL))
-                tb_model_name = 'ppo_test_{}_{}_{}'.format(time_int, config.TICKERS, config.DATA_INTERVAL)
+                model_dir = os.path.join(config.TRAINED_MODEL_DIR, '{}_test_{}_{}_{}_{}'.format(config.MODEL, time_int, config.TICKERS, config.DATA_INTERVAL, config.MODEL_DESCRIPTION))
+                tb_model_name = 'ppo_test_{}_{}_{}_{}'.format(time_int, config.TICKERS, config.DATA_INTERVAL, config.MODEL_DESCRIPTION)
             else:
-                model_dir = os.path.join(config.TRAINED_MODEL_DIR, '{}_{}_{}_{}'.format(config.MODEL, time_int, config.TICKERS, config.DATA_INTERVAL))
-                tb_model_name = 'ppo_{}_{}_{}'.format(time_int, config.TICKERS, config.DATA_INTERVAL)
+                model_dir = os.path.join(config.TRAINED_MODEL_DIR, '{}_{}_{}_{}_{}'.format(config.MODEL, time_int, config.TICKERS, config.DATA_INTERVAL, config.MODEL_DESCRIPTION))
+                tb_model_name = 'ppo_{}_{}_{}_{}'.format(time_int, config.TICKERS, config.DATA_INTERVAL, config.MODEL_DESCRIPTION)
             if not os.path.isdir(model_dir):
                 os.mkdir(model_dir)
 

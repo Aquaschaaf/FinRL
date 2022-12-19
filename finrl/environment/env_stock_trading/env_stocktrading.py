@@ -48,6 +48,7 @@ class StockTradingEnv(gym.Env):
         model_name="",
         mode="",
         iteration="",
+        idle_threshold=None
     ):
         self.day = day
         self.df = df
@@ -78,8 +79,10 @@ class StockTradingEnv(gym.Env):
         self.iteration = iteration
         # initalize state
         self.state = self._initiate_state()
+        self.idle_threshold = idle_threshold
+        self.performance_all_trades = 0
 
-        self.sold_shares = False
+        self.no_trades_counter = 0
         self.cash_idx = 0
         self.price_idxs = np.array(range(1, self.stock_dim + 1))
         self.depot_idxs = np.array(range(self.stock_dim + 1, self.stock_dim * 2 + 1))
@@ -170,10 +173,15 @@ class StockTradingEnv(gym.Env):
 
     def step(self, actions):
 
-
-        self.sold_shares = False
-
         self.terminal = self.day >= len(self.df.index.unique()) - 1
+        idle_end = False
+        # If its not the official end, check if its a no trade end
+        if not self.terminal and self.idle_threshold is not None:
+            self.terminal = self.no_trades_counter > self.idle_threshold
+            idle_end = True
+            if self.terminal:
+                print("ENDING EPISODE DUE TO IDELING AFTER {} DAYS".format(self.day))
+
         # If done
         if self.terminal:
             # print(f"Episode: {self.episode}")
@@ -205,6 +213,11 @@ class StockTradingEnv(gym.Env):
                     * df_total_value["daily_return"].mean()
                     / df_total_value["daily_return"].std()
                 )
+
+            # Is this okay?
+            if not self.rewards_memory:
+                self.rewards_memory = {self.day: 0}
+
             df_rewards = pd.DataFrame(self.rewards_memory)
             df_rewards.columns = ["account_rewards"]
             df_rewards["date"] = self.date_memory[:-1]
@@ -254,6 +267,13 @@ class StockTradingEnv(gym.Env):
             # logger.record("environment/total_cost", self.cost)
             # logger.record("environment/total_trades", self.trades)
 
+            # if not idle_end:
+            # Add average Perfromance of all trades at end of episode
+            avg_trade_perf = self.performance_all_trades / self.trades
+            print("Avergae trade performance at end of epidoe: {0:.2f} (total: {1:.2f} / {2:} trades)".format(
+                avg_trade_perf, self.performance_all_trades, self.trades))
+            self.reward += avg_trade_perf
+
             return self.state, self.reward, self.terminal, {}
 
         else:
@@ -275,6 +295,12 @@ class StockTradingEnv(gym.Env):
             depot_after = self.state[self.depot_idxs]
             buy_prices_after = self.state[self.buy_price_idxs]
 
+            non_zeros = actions[actions!=0]
+            if len(non_zeros)==0:
+                self.no_trades_counter += 1
+            else:
+                self.no_trades_counter = 0
+
             # Rate sell tranactions -> Sell_price - Buy_price * Amount
             sell_index = np.where(actions < 0)[0]
             trade_reward = 0
@@ -285,9 +311,14 @@ class StockTradingEnv(gym.Env):
                 diff = sell_price - buy_price
                 perf = diff * amount
 
+                # Only positive trades
+                perf = np.max([0, perf])
+
                 trade_reward += perf
-            trade_reward *= 10
-            trade_reward = np.max([trade_reward, 0])
+                self.performance_all_trades += perf
+
+            # trade_reward *= 10
+            # trade_reward = np.max([trade_reward, 0])
             # maybe the cehck if trade reaward > 100 or so. Set to 0 if not -> Incetivise profitable trades
 
             # state: s -> s+1
@@ -346,11 +377,13 @@ class StockTradingEnv(gym.Env):
         self.turbulence = 0
         self.cost = 0
         self.trades = 0
+        self.performance_all_trades = 0
         self.terminal = False
         # self.iteration=self.iteration
         self.rewards_memory = []
         self.actions_memory = []
         self.date_memory = [self._get_date()]
+        self.no_trades_counter = 0
 
         self.episode += 1
 
@@ -364,6 +397,7 @@ class StockTradingEnv(gym.Env):
         if self.initial:
             # For Initial State
             if len(self.df.tic.unique()) > 1:
+
                 sum_tech = sum( (self.data[tech].values.tolist() for tech in self.tech_indicator_list ), [] , )
                 # for multiple stock
                 state = (
@@ -395,6 +429,7 @@ class StockTradingEnv(gym.Env):
                     + self.previous_state[
                         (self.stock_dim + 1) : (self.stock_dim * 2 + 1)
                     ]
+                    + [0] + self.stock_dim  # buy prices
                     + sum(
                         (
                             self.data[tech].values.tolist()

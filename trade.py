@@ -141,7 +141,7 @@ logger.info("Account Value Shape: {}".format(df_account_value.shape))
 logger.info("Account Value Tail: {}".format(df_account_value.tail()))
 logger.info("Actions Head: {}".format(df_actions.head()))
 
-plot_actions(trade, df_actions)
+plot_actions(trade, df_actions, plot=True)
 
 
 logger.info("==============Get Backtest Results===========")

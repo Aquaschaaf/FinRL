@@ -57,10 +57,13 @@ class RenderCallback(BaseCallback):
                     print("hit end!")
                     break
 
-            fig_per_stock, fig_all = plot_actions(self.eval_env.df, actions_memory[0])
+            if len(actions_memory)>0:
+                fig_per_stock, fig_all = plot_actions(self.eval_env.df, actions_memory[0])
+                self.logger.record("images/per_stpck", Image(fig_per_stock, "HWC"), exclude=("stdout", "log", "json", "csv"))
+                self.logger.record("images/all", Image(fig_all, "HWC"), exclude=("stdout", "log", "json", "csv"))
 
-            self.logger.record("images/per_stpck", Image(fig_per_stock, "HWC"), exclude=("stdout", "log", "json", "csv"))
-            self.logger.record("images/all", Image(fig_all, "HWC"), exclude=("stdout", "log", "json", "csv"))
+            else:
+                print("PRINT WAS UNABLAE TO PLOT OMAGES: QALSO LOOK HERE FOR INDEIVIUDLA TB LOGGING")
 
     def on_step(self) -> bool:
         """

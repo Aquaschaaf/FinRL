@@ -122,7 +122,7 @@ def trx_plot(df_trade, df_actions, ticker_list):
 
 
 
-def plot_actions(trade, df_actions):
+def plot_actions(trade, df_actions, plot=False):
 
     stock_ticker = trade['tic'].unique()
     gb = trade.groupby(['tic'])
@@ -229,7 +229,8 @@ def plot_actions(trade, df_actions):
     img_data_all = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
     img_data_all = img_data_all.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
-    plt.close('all')
+    if not plot:
+        plt.close('all')
     return img_data_perstock, img_data_all
 
 
