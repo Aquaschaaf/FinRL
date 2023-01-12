@@ -67,7 +67,7 @@ RESULTS_DIR = "results"
 MODEL_DESCRIPTION = "AddedDiversificationNoTradeReward"
 
 TEST = False
-MODEL = "ppo"
+MODEL = "recPPO"
 TRAIN_NEW_AGENT = True
 RETRAIN_AGENT = False
 TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_1673348238_CUSTOM_1d_AddedDiversificationNoTradeReward/best_model.zip"
@@ -77,6 +77,12 @@ TRAIN_TIMESTEPS = 1000000 # 1000000 #  750000
 # Model Parameters
 A2C_PARAMS = {"n_steps": 5, "ent_coef": 0.01, "learning_rate": 0.0007}
 PPO_PARAMS = {
+    "n_steps": 2048,
+    "ent_coef": 0.01,
+    "learning_rate": 0.00025,
+    "batch_size": 128,
+}
+RECPPO_PARAMS = {
     "n_steps": 2048,
     "ent_coef": 0.01,
     "learning_rate": 0.00025,
@@ -119,5 +125,5 @@ USE_TIME_ZONE_SELFDEFINED = 0  # 0 (default) or 1 (use the self defined)
 # ============================================================================
 # ============================ Summarys ======================================
 # ============================================================================
-MODEL_PARAMS = {"ppo":PPO_PARAMS, "a2c": A2C_PARAMS, "sac": SAC_PARAMS}
+MODEL_PARAMS = {"ppo":PPO_PARAMS, "recPPO":RECPPO_PARAMS, "a2c": A2C_PARAMS, "sac": SAC_PARAMS}
 DIRS = [RAW_DATA_SAVE_DIR, PREPRO_DATA_SAVE_DIR, TRAINED_MODEL_DIR, TENSORBOARD_LOG_DIR, RESULTS_DIR]

@@ -21,10 +21,10 @@ class SB3Trainer:
             time_int = int(time.time())
             if config.TEST:
                 model_dir = os.path.join(config.TRAINED_MODEL_DIR, '{}_test_{}_{}_{}_{}'.format(config.MODEL, time_int, config.TICKERS, config.DATA_INTERVAL, config.MODEL_DESCRIPTION))
-                tb_model_name = 'ppo_test_{}_{}_{}_{}'.format(time_int, config.TICKERS, config.DATA_INTERVAL, config.MODEL_DESCRIPTION)
+                tb_model_name = '{}_test_{}_{}_{}_{}'.format(config.MODEL, time_int, config.TICKERS, config.DATA_INTERVAL, config.MODEL_DESCRIPTION)
             else:
                 model_dir = os.path.join(config.TRAINED_MODEL_DIR, '{}_{}_{}_{}_{}'.format(config.MODEL, time_int, config.TICKERS, config.DATA_INTERVAL, config.MODEL_DESCRIPTION))
-                tb_model_name = 'ppo_{}_{}_{}_{}'.format(time_int, config.TICKERS, config.DATA_INTERVAL, config.MODEL_DESCRIPTION)
+                tb_model_name = '{}_{}_{}_{}_{}'.format(config.MODEL, time_int, config.TICKERS, config.DATA_INTERVAL, config.MODEL_DESCRIPTION)
             if not os.path.isdir(model_dir):
                 os.mkdir(model_dir)
 
@@ -89,7 +89,12 @@ class SB3Trainer:
         agent = DRLAgent(env=self.train_env)
         model_params = config.MODEL_PARAMS[config.MODEL]
 
-        model = agent.get_model(config.MODEL, policy="MlpPolicy", model_kwargs=model_params,
+        if config.MODEL == 'recPPO':
+            policy = "MlpLstmPolicy"
+        else:
+            policy = "MlpPolicy"
+
+        model = agent.get_model(config.MODEL, policy=policy, model_kwargs=model_params,
                                 tensorboard_log=config.TENSORBOARD_LOG_DIR)
         if config.RETRAIN_AGENT:
             model = self.setup_model_for_retraining(model)
