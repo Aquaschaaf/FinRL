@@ -4,7 +4,7 @@ BASELINE_TICKER = ["^DJI", "^GSPC"]
 
 SINGLE_TICKER = ["AAPL"]
 
-CUSTOM = ["AXP", "AMGN", "AAPL"]
+CUSTOM = ["UNH", "VZ", "DIS"]
 
 # Dow 30 constituents in 2021/10
 # check https://wrds-www.wharton.upenn.edu/ for U.S. index constituents

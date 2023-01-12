@@ -100,6 +100,10 @@ class TensorboardCallback(BaseCallback):
         super().__init__(verbose)
 
     def _on_step(self) -> bool:
+
+        for k, v in self.locals["infos"][0].items():
+            self.logger.record(key="{}".format(k), value=v)
+
         try:
             self.logger.record(key="train/reward", value=self.locals["rewards"][0])
         except BaseException:

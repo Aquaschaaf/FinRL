@@ -10,9 +10,11 @@ import pandas as pd
 from gym import spaces
 from gym.utils import seeding
 from finrl.plot import plot_actions
+from scipy.stats import entropy
 from finrl.environment.env_stock_trading.Broker import Broker
 from stable_baselines3.common.vec_env import DummyVecEnv
 import logging
+import math
 
 logger = logging.getLogger(__name__)
 matplotlib.use("Agg")
@@ -165,6 +167,27 @@ class StockTradingEnv(gym.Env):
         return cash + depot_value
 
 
+    def calc_portfolio_weight_entropy(self):
+
+        prices = np.array(self.state[self.price_idxs])
+        depot = np.array(self.state[self.depot_idxs])
+        all_investments = sum(prices * depot)
+        weights_per_stock = []
+
+        if all_investments == 0.0:
+            return 0.0
+
+        for price, amount in zip(prices, depot):
+
+            investment_per_stock = price * amount
+            weights_per_stock.append(investment_per_stock / all_investments)
+
+        weight_entropy = entropy(weights_per_stock)
+        if math.isnan(weight_entropy):
+            return 0.0
+
+        return weight_entropy
+
 
     def _make_plot(self):
         plt.plot(self.asset_memory, "r")
@@ -174,13 +197,14 @@ class StockTradingEnv(gym.Env):
     def step(self, actions):
 
         self.terminal = self.day >= len(self.df.index.unique()) - 1
+
         idle_end = False
-        # If its not the official end, check if its a no trade end
-        if not self.terminal and self.idle_threshold is not None:
-            self.terminal = self.no_trades_counter > self.idle_threshold
-            idle_end = True
-            if self.terminal:
-                print("ENDING EPISODE DUE TO IDELING AFTER {} DAYS".format(self.day))
+        # # If its not the official end, check if its a no trade end
+        # if not self.terminal and self.idle_threshold is not None:
+        #     self.terminal = self.no_trades_counter > self.idle_threshold
+        #     idle_end = True
+        #     if self.terminal:
+        #         print("ENDING EPISODE DUE TO IDELING AFTER {} DAYS".format(self.day))
 
         # If done
         if self.terminal:
@@ -269,12 +293,19 @@ class StockTradingEnv(gym.Env):
 
             # if not idle_end:
             # Add average Perfromance of all trades at end of episode
-            avg_trade_perf = self.performance_all_trades / self.trades
-            print("Avergae trade performance at end of epidoe: {0:.2f} (total: {1:.2f} / {2:} trades)".format(
-                avg_trade_perf, self.performance_all_trades, self.trades))
-            self.reward += avg_trade_perf
+            avg_trade_perf = self.performance_all_trades / self.trades if self.trades != 0 else 0
+            # print("Avergae trade performance at end of epidoe: {0:.2f} (total: {1:.2f} / {2:} trades)".format(
+            #     avg_trade_perf, self.performance_all_trades, self.trades))
+            # self.reward += avg_trade_perf
 
-            return self.state, self.reward, self.terminal, {}
+            self.reward = tot_reward
+
+            info = {"terminal/reward": self.reward,
+                    "terminal/sharpe_ratio": sharpe,
+                    "terminal/average_trade_perf_reward": avg_trade_perf,
+                    "terminal/depot_performance": tot_reward}
+
+            return self.state, self.reward, self.terminal, info
 
         else:
             # action = Amount of stocks to buy/sell
@@ -311,8 +342,8 @@ class StockTradingEnv(gym.Env):
                 diff = sell_price - buy_price
                 perf = diff * amount
 
-                # Only positive trades
-                perf = np.max([0, perf])
+                # # Only positive trades
+                # perf = np.max([0, perf])
 
                 trade_reward += perf
                 self.performance_all_trades += perf
@@ -336,12 +367,17 @@ class StockTradingEnv(gym.Env):
             self.asset_memory.append(end_total_asset)
             self.date_memory.append(self._get_date())
 
+            weight_entropy = self.calc_portfolio_weight_entropy()
+            diversification_reward = -0.5 + weight_entropy * 100
+
+            depot_perf_reward = end_total_asset - begin_total_asset
+
             "https://ai.stackexchange.com/questions/10082/suitable-reward-function-for-trading-buy-and-sell-orders"
             self.reward = 0
-            # self.reward = end_total_asset - begin_total_asset
-            self.reward += trade_reward
-            # if self.sold_shares:
-            #     self.reward += 3
+            self.reward += depot_perf_reward
+            self.reward += diversification_reward
+            # self.reward += trade_reward
+
             self.rewards_memory.append(self.reward)
             self.reward = self.reward * self.reward_scaling
 
@@ -349,7 +385,13 @@ class StockTradingEnv(gym.Env):
                 self.state
             )  # add current state in state_recorder for each step
 
-        return self.state, self.reward, self.terminal, {}
+            info = {"reward/diversification_reward": diversification_reward,
+                    "reward/depot_performance_reward": depot_perf_reward,
+                    "reward/trade_reward": trade_reward,
+                    "reward/total_reward": self.reward,
+                    "train/perfroamce_all_trades": self.performance_all_trades}
+
+        return self.state, self.reward, self.terminal, info
 
     def reset(self):
         # initiate state

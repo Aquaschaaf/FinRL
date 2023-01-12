@@ -10,6 +10,7 @@ from stable_baselines3 import DDPG
 from stable_baselines3 import PPO
 from stable_baselines3 import SAC
 from stable_baselines3 import TD3
+from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.noise import OrnsteinUhlenbeckActionNoise
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -19,7 +20,7 @@ from finrl.environment.env_stock_trading.env_stocktrading import StockTradingEnv
 from finrl.data.preprocessor.preprocessors import data_split
 import finrl.agents.stablebaselines3.callbacks as sb3_cbs
 
-MODELS = {"a2c": A2C, "ddpg": DDPG, "td3": TD3, "sac": SAC, "ppo": PPO}
+MODELS = {"a2c": A2C, "ddpg": DDPG, "td3": TD3, "sac": SAC, "ppo": PPO, 'recPPO': RecurrentPPO}
 
 MODEL_KWARGS = {x: config.__dict__[f"{x.upper()}_PARAMS"] for x in MODELS.keys()}
 
