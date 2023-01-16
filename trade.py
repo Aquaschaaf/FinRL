@@ -129,7 +129,11 @@ e_trade_gym = StockTradingEnv(df=trade, turbulence_threshold=70, risk_indicator_
 # Train model
 agent = DRLAgent(env=e_trade_gym)
 model_params = config.MODEL_PARAMS[config.MODEL]
-model = agent.get_model(config.MODEL, policy="MlpPolicy", model_kwargs=model_params,
+if config.MODEL == "recPPO":
+    policy = "MlpLstmPolicy"
+else:
+    policy = "MlpPolicy"
+model = agent.get_model(config.MODEL, policy=policy, model_kwargs=model_params,
                         tensorboard_log=config.TENSORBOARD_LOG_DIR)
 model = model.load(config.TRAINED_AGENT_PATH)
 print("Loaded model: {}".format(config.TRAINED_AGENT_PATH))

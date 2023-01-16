@@ -2,9 +2,9 @@ from __future__ import annotations
 
 BASELINE_TICKER = ["^DJI", "^GSPC"]
 
-SINGLE_TICKER = ["AAPL"]
+SINGLE_TICKER = ["VZ"]
 
-CUSTOM = ["UNH", "VZ", "DIS"]
+CUSTOM = ["AXP", "AMGN", "AAPL"]
 
 # Dow 30 constituents in 2021/10
 # check https://wrds-www.wharton.upenn.edu/ for U.S. index constituents

@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from gym import spaces
 from gym.utils import seeding
-from finrl.plot import plot_actions
+from finrl.plot import plot_actions, plot_states
 from scipy.stats import entropy
 from finrl.environment.env_stock_trading.Broker import Broker
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -136,10 +136,12 @@ class StockTradingEnv(gym.Env):
 
             for index in sell_index:
 
-                actions[index], depot, buy_prices, cost = self.broker.sell_stock(index, actions[index], self.state)
+                actions[index], depot, sale_return, cost = self.broker.sell_stock(index, actions[index], self.state)
                 self.cost += cost
+                self.state[self.cash_idx] += sale_return
                 self.state[self.depot_idxs] = depot
-                self.state[self.buy_price_idxs] = buy_prices
+                if self.state[self.depot_idxs][index] == 0:
+                    self.state[self.buy_price_idxs][index] = 0
                 if abs(actions[index]) > 0:
                     self.trades += 1
 
@@ -147,24 +149,79 @@ class StockTradingEnv(gym.Env):
 
             for index in buy_index:
                 # print('take buy action: {}'.format(actions[index]))
-                actions[index], depot, buy_prices, cost = self.broker.buy_stock(index, actions[index], self.state)
+                actions[index], depot, buy_prices, buy_cost, cost = self.broker.buy_stock(index, actions[index], self.state)
+                self.state[self.cash_idx] -= buy_cost
                 self.state[self.depot_idxs] = depot
                 self.state[self.buy_price_idxs] = buy_prices
                 self.cost += cost
-                if abs(actions[index]) > 0:
-                    self.trades += 1
+                # if abs(actions[index]) > 0:
+                #     self.trades += 1
 
         return actions
 
 
-    def calculate_total_asset_value(self):
+    def calculate_total_asset_value(self, state):
 
-        cash = self.state[self.cash_idx]
-        prices = np.array(self.state[self.price_idxs])
-        depot = np.array(self.state[self.depot_idxs])
-        depot_value = sum(prices * depot)
+        cash = state[self.cash_idx]
+        depot_value = self.calculate_total_depot_value(state)
 
         return cash + depot_value
+
+    def calculate_total_depot_value(self, state):
+
+        prices = np.array(state[self.price_idxs])
+        depot = np.array(state[self.depot_idxs])
+        return sum(prices * depot)
+
+    def calculate_depot_performance(self, state):
+
+        prices = np.array(state[self.price_idxs])
+        buy_prices = np.array(state[self.buy_price_idxs])
+        depot = np.array(state[self.depot_idxs])
+
+        price_diffs = prices - buy_prices
+        return sum(price_diffs * depot)
+
+    def calculate_depot_performance_pct(self):
+
+        depot = np.array(self.state[self.depot_idxs])
+        prices = np.array(self.state[self.price_idxs])
+        buy_prices = np.array(self.state[self.buy_price_idxs])
+
+        nonzero = np.nonzero(depot)
+        prices = prices[nonzero]
+        buy_prices = buy_prices[nonzero]
+
+        price_diffs = (prices - buy_prices) / buy_prices * 100
+        return sum(price_diffs)
+
+
+    def plot_state_memory(self):
+        all_cash = [sm[self.cash_idx] for sm in self.state_memory]
+        all_prices = [sm[self.price_idxs][0] for sm in self.state_memory]
+        all_depots = [sm[self.depot_idxs][0] for sm in self.state_memory]
+        buy_prices = [sm[self.buy_price_idxs][0] for sm in self.state_memory]
+        all_total_value = [self.calculate_total_asset_value(sm) for sm in self.state_memory]
+        all_features = [list(sm[self.buy_price_idxs[-1] + 1:]) for sm in self.state_memory]
+        f1, f2, f3, f4, f5, f6, f7, f8 = map(list, zip(*all_features))
+
+        fig, axs = plt.subplots(4,1)
+        axs[0].plot(all_cash)
+        axs[1].plot(all_prices)
+        axs[1].plot(buy_prices)
+        axs[2].plot(all_depots)
+        axs[3].plot(all_total_value)
+
+        fig, ax = plt.subplots(1,1)
+        ax.plot(f1)
+        ax.plot(f2)
+        ax.plot(f3)
+        ax.plot(f4)
+        ax.plot(f5)
+        ax.plot(f6)
+        ax.plot(f7)
+        ax.plot(f8)
+        plt.show()
 
 
     def calc_portfolio_weight_entropy(self):
@@ -188,17 +245,42 @@ class StockTradingEnv(gym.Env):
 
         return weight_entropy
 
+    def conv_state2string(self, state):
+
+        out_string = "Cash: {}, #Shares: {}, Prices: {}, BuyPrices: {}".format(
+            state[self.cash_idx],
+            state[self.depot_idxs],
+            state[self.price_idxs],
+            state[self.buy_price_idxs])
+        return out_string
+
 
     def _make_plot(self):
-        plt.plot(self.asset_memory, "r")
-        plt.savefig(f"results/account_value_trade_{self.episode}.png")
-        plt.close()
+
+        img = plot_states(self.save_state_memory())
+        plt.imshow(img, interpolation='nearest')
+        plt.savefig(f"results/states_episode{self.episode}.png")
+
+        img = plot_actions(self.df, self.save_action_memory())
+        plt.imshow(img, interpolation='nearest')
+        plt.savefig(f"results/actions_episode{self.episode}.png")
+
+        # plt.plot(self.asset_memory, "r")
+        # plt.savefig(f"results/account_value_trade_{self.episode}.png")
+        # plt.close()
 
     def step(self, actions):
 
+        logger.debug("Processing step {}".format(self.day))
+
         self.terminal = self.day >= len(self.df.index.unique()) - 1
 
-        idle_end = False
+        all_assets_value = self.calculate_total_asset_value(self.state)
+        if all_assets_value < 1000:
+            print("IM BROKE!")
+            self.terminal = True
+
+        # idle_end = False
         # # If its not the official end, check if its a no trade end
         # if not self.terminal and self.idle_threshold is not None:
         #     self.terminal = self.no_trades_counter > self.idle_threshold
@@ -209,34 +291,23 @@ class StockTradingEnv(gym.Env):
         # If done
         if self.terminal:
             # print(f"Episode: {self.episode}")
-            if self.make_plots:
+            if self.make_plots and self.episode % 50 == 0:
                 self._make_plot()
-            end_total_asset = self.state[0] + sum(
-                np.array(self.state[1 : (self.stock_dim + 1)])
-                * np.array(self.state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)])
-            )
+            end_total_asset = self.calculate_total_asset_value(self.state)
+
             df_total_value = pd.DataFrame(self.asset_memory)
-            tot_reward = (
-                self.state[0]
-                + sum(
-                    np.array(self.state[1 : (self.stock_dim + 1)])
-                    * np.array(
-                        self.state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)]
-                    )
-                )
-                - self.asset_memory[0]
-            )  # initial_amount is only cash part of our initial asset
+            tot_reward = (end_total_asset - self.asset_memory[0])  # initial_amount is only cash part of our initial asset
             df_total_value.columns = ["account_value"]
             df_total_value["date"] = self.date_memory
-            df_total_value["daily_return"] = df_total_value["account_value"].pct_change(
-                1
-            )
+            df_total_value["daily_return"] = df_total_value["account_value"].pct_change(1)
             if df_total_value["daily_return"].std() != 0:
                 sharpe = (
                     (252**0.5)
                     * df_total_value["daily_return"].mean()
                     / df_total_value["daily_return"].std()
                 )
+            else:
+                sharpe = -3
 
             # Is this okay?
             if not self.rewards_memory:
@@ -298,12 +369,20 @@ class StockTradingEnv(gym.Env):
             #     avg_trade_perf, self.performance_all_trades, self.trades))
             # self.reward += avg_trade_perf
 
-            self.reward = tot_reward
+            self.reward = avg_trade_perf * 100
+            # self.reward = tot_reward
 
             info = {"terminal/reward": self.reward,
                     "terminal/sharpe_ratio": sharpe,
                     "terminal/average_trade_perf_reward": avg_trade_perf,
-                    "terminal/depot_performance": tot_reward}
+                    "terminal/depot_performance": tot_reward,
+                    "terminal/episode_length": self.day,
+                    "terminal/number_of_trades": self.trades
+                    }
+
+            # self.plot_state_memory()
+
+            logger.debug("End of episode\n")
 
             return self.state, self.reward, self.terminal, info
 
@@ -312,19 +391,41 @@ class StockTradingEnv(gym.Env):
             actions = actions * self.hmax  # actions initially is scaled between 0 to 1
             actions = actions.astype(int)  # convert into integer because we can't by fraction of shares
 
+            # actions[actions>0] = 1000
+            # actions[actions<0] = -1000
+
             # state = [Cash, Value of Stocks, Num of stocks in Depot, TechnIndicator]
             if self.turbulence_threshold is not None:
                 if self.turbulence >= self.turbulence_threshold:
                     actions = np.array([-self.hmax] * self.stock_dim)
 
-            begin_total_asset = self.calculate_total_asset_value()
+            begin_total_asset = self.calculate_total_asset_value(self.state)
+            begin_depot_value = self.calculate_total_depot_value(self.state)
+            begin_depot_performance = self.calculate_depot_performance(self.state)
 
             depot_before = self.state[self.depot_idxs]
             buy_prices_before = self.state[self.buy_price_idxs]
+            cash_before = self.state[self.cash_idx]
+            logger.debug("State before applying actions\n{}\nCurrent asset value: {}".format(self.conv_state2string(self.state), begin_total_asset))
+
             actions = self._update_depot(actions)
+
             self.actions_memory.append(actions)
             depot_after = self.state[self.depot_idxs]
             buy_prices_after = self.state[self.buy_price_idxs]
+            cash_after = self.state[self.cash_idx]
+
+            # Actual begin is here? After buying/selling according to action. Then uzpdate is next days data
+            begin_total_asset = self.calculate_total_asset_value(self.state)
+            begin_depot_value = self.calculate_total_depot_value(self.state)
+            begin_depot_performance = self.calculate_depot_performance(self.state)
+            logger.debug("State after applying actions\n{}\nCurrent asset value: {}".format(self.conv_state2string(self.state), begin_total_asset))
+
+
+            if all(v == 0 for v in self.state[self.depot_idxs]):
+                depot_empty = True
+            else:
+                depot_empty = False
 
             non_zeros = actions[actions!=0]
             if len(non_zeros)==0:
@@ -338,15 +439,17 @@ class StockTradingEnv(gym.Env):
             for i in sell_index:
                 sell_price = self.state[self.price_idxs][i]
                 buy_price = buy_prices_before[i]
-                amount = abs(actions[i])
-                diff = sell_price - buy_price
-                perf = diff * amount
+                # amount = abs(actions[i])
+                # diff = sell_price - buy_price
+                # perf = diff * amount
+
+                perf_pct = (sell_price - buy_price) / abs(buy_price) * 100
 
                 # # Only positive trades
                 # perf = np.max([0, perf])
 
-                trade_reward += perf
-                self.performance_all_trades += perf
+                trade_reward += perf_pct
+                self.performance_all_trades += perf_pct
 
             # trade_reward *= 10
             # trade_reward = np.max([trade_reward, 0])
@@ -362,21 +465,32 @@ class StockTradingEnv(gym.Env):
                     self.turbulence = self.data[self.risk_indicator_col].values[0]
             self.state = self._update_state()
 
-            end_total_asset = self.calculate_total_asset_value()
+            end_total_asset = self.calculate_total_asset_value(self.state)
+            end_depot_value = self.calculate_total_depot_value(self.state)
+            end_depot_performance = self.calculate_depot_performance(self.state)
+            logger.debug("State after applying updating date:\n{}\nCurrent asset value: {}".format(self.conv_state2string(self.state), end_total_asset))
 
             self.asset_memory.append(end_total_asset)
             self.date_memory.append(self._get_date())
 
             weight_entropy = self.calc_portfolio_weight_entropy()
             diversification_reward = -0.5 + weight_entropy * 100
-
-            depot_perf_reward = end_total_asset - begin_total_asset
+            depot_perf_reward = self.calculate_depot_performance_pct() #* 0.1
+            # # ToDo Problem: Negative Performance am Beginn - dann kommt sell Befehl und Depot ist leer -> Performance ist 0 -> Ergibt einen positiven Reward. Inzentiviert verkaufen bei negativer Perofrmance? Gelöst durch das depot empty?
+            # if begin_depot_performance != 0:
+            #     perf_devel_pct = (end_depot_performance - begin_depot_performance) / abs(begin_depot_performance) * 100
+            # else:
+            #     perf_devel_pct = 0
+            # depot_perf_reward = perf_devel_pct if not depot_empty else 0
+            # depot_perf_reward = ((end_depot_performance - begin_depot_performance)/begin_depot_performance) * 100
+            # depot_perf_reward = end_depot_value - begin_depot_value
+            # depot_perf_reward = end_total_asset - begin_total_asset
 
             "https://ai.stackexchange.com/questions/10082/suitable-reward-function-for-trading-buy-and-sell-orders"
             self.reward = 0
             self.reward += depot_perf_reward
             self.reward += diversification_reward
-            # self.reward += trade_reward
+            self.reward += trade_reward
 
             self.rewards_memory.append(self.reward)
             self.reward = self.reward * self.reward_scaling
@@ -389,11 +503,17 @@ class StockTradingEnv(gym.Env):
                     "reward/depot_performance_reward": depot_perf_reward,
                     "reward/trade_reward": trade_reward,
                     "reward/total_reward": self.reward,
-                    "train/perfroamce_all_trades": self.performance_all_trades}
+                    "train/avg_perfroamce_all_trades": self.performance_all_trades/self.trades if self.trades !=0 else 0,
+                    "train/num_episode": self.episode
+
+                    }
+
+            logger.debug("End of step\n")
 
         return self.state, self.reward, self.terminal, info
 
     def reset(self):
+        logger.debug("Resetting StockTradingEnv")
         # initiate state
         self.state = self._initiate_state()
 
@@ -424,6 +544,7 @@ class StockTradingEnv(gym.Env):
         # self.iteration=self.iteration
         self.rewards_memory = []
         self.actions_memory = []
+        self.state_memory = []
         self.date_memory = [self._get_date()]
         self.no_trades_counter = 0
 
@@ -535,26 +656,44 @@ class StockTradingEnv(gym.Env):
             date_list = self.date_memory[:-1]
             df_date = pd.DataFrame(date_list)
             df_date.columns = ["date"]
-
             state_list = self.state_memory
+
+            stocks = self.data.tic.values
+            columns = ["col_{}".format(i) for i in range(len(self.state))]
+            columns[self.cash_idx] = "cash"
+            for idx, i in enumerate(self.depot_idxs):
+                columns[i] = "Shares_{}".format(stocks[idx])
+            for idx, i in enumerate(self.price_idxs):
+                columns[i] = "Price_{}".format(stocks[idx])
+            for idx, i in enumerate(self.buy_price_idxs):
+                columns[i] = "BuyPrice_{}".format(stocks[idx])
+
             df_states = pd.DataFrame(
                 state_list,
-                columns=[
-                    "cash",
-                    "Bitcoin_price",
-                    "Gold_price",
-                    "Bitcoin_num",
-                    "Gold_num",
-                    "Bitcoin_Disable",
-                    "Gold_Disable",
-                ],
+                columns=columns,
             )
+            df_states["TotalValue"] = df_states.apply(lambda row: self.calculate_total_asset_value(row), axis=1)
             df_states.index = df_date.date
             # df_actions = pd.DataFrame({'date':date_list,'actions':action_list})
         else:
             date_list = self.date_memory[:-1]
+            df_date = pd.DataFrame(date_list)
+            df_date.columns = ["date"]
             state_list = self.state_memory
-            df_states = pd.DataFrame({"date": date_list, "states": state_list})
+
+            stocks = [self.data.tic]
+            columns = ["col_{}".format(i) for i in range(len(self.state))]
+            columns[self.cash_idx] = "cash"
+            for idx, i in enumerate(self.depot_idxs):
+                columns[i] = "Shares_{}".format(stocks[idx])
+            for idx, i in enumerate(self.price_idxs):
+                columns[i] = "Price_{}".format(stocks[idx])
+            for idx, i in enumerate(self.buy_price_idxs):
+                columns[i] = "BuyPrice_{}".format(stocks[idx])
+
+            df_states = pd.DataFrame(state_list,columns=columns)
+            df_states["TotalValue"] = df_states.apply(lambda row: self.calculate_total_asset_value(row), axis=1)
+            df_states.index = df_date.date
         # print(df_states)
         return df_states
 

@@ -31,7 +31,11 @@ class DatasetFactory:
         # Directory to save the raw ticker data to
         self.raw_dir = config.RAW_DATA_SAVE_DIR
         # Directory to save the preprocessed dataset
-        self.name = '{}_{}_{}'.format(self.ticker_list_name, self.start_date, self.end_date)
+        if self.ticker_list_name == "SINGLE" or ticker_list_name == "CUSTOM":
+            ticker_str = ",".join(t for t in self.ticker if t != "^VIX")
+            self.name = '{}_[{}]_{}_{}'.format(self.ticker_list_name, ticker_str, self.start_date, self.end_date)
+        else:
+            self.name = '{}_{}_{}'.format(self.ticker_list_name, self.start_date, self.end_date)
         self.prepro_filename = os.path.join(config.PREPRO_DATA_SAVE_DIR, '{}'.format(self.name))
 
     def load_and_update_raw_data(self, raw_data_file, ticker):

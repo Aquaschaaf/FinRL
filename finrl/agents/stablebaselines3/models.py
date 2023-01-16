@@ -83,18 +83,19 @@ class DRLAgent:
             **model_kwargs,
         )
 
-    def train_model(self, model, tb_log_name, total_timesteps=5000, model_dir=None, test_env=None, reset_timesteps=True):
+    def train_model(self, model, tb_log_name, total_timesteps=5000, model_dir=None, test_gym=None, train_gym=None, reset_timesteps=True):
         callbacks = []
         if tb_log_name is not None:
             callbacks.append(sb3_cbs.TensorboardCallback())
         # if model_dir is not None:
         #     callbacks.append(sb3_cbs.EvalCallback())
-        if test_env is not None and model_dir is not None:
+        if test_gym is not None and model_dir is not None:
             eval_freq = 10000
             callbacks.append(sb3_cbs.get_write_checkpoint_cb(eval_freq, model_dir))
-            callbacks.append(sb3_cbs.get_eval_cb(test_env, model_dir, freq=eval_freq))
+            callbacks.append(sb3_cbs.get_eval_cb(test_gym, model_dir, freq=eval_freq))
 
-        callbacks.append(sb3_cbs.RenderCallback(test_env, model_dir, freq=eval_freq))
+        callbacks.append(sb3_cbs.RenderCallback(test_gym, model_dir, 'test', freq=eval_freq))
+        callbacks.append(sb3_cbs.RenderCallback(train_gym, model_dir, 'train', freq=eval_freq))
 
         # for i in range(epochs):
         #     print("\n\nEPOCH: ", i)

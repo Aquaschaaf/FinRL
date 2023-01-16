@@ -5,8 +5,8 @@ import os
 # ============================================================================
 # ============================ Data ==========================================
 # ============================================================================
-# TICKERS = "SINGLE"
-TICKERS = "CUSTOM"
+TICKERS = "SINGLE"
+# TICKERS = "CUSTOM"
 # TICKERS = "DOW_30"
 DATA_INTERVAL = "1d"
 RAW_DATA_BASE_DIR = "datasets/raw"
@@ -36,18 +36,12 @@ USE_TURBULENCE = True if not "m" in DATA_INTERVAL else False
 # TEST_FRACTION = 0.15
 # VAL_FRACTION = 0.15
 
-TRAIN_START_DATE = "2014-01-06"  # bug fix: set Monday right, start date set 2014-01-01 ValueError: all the input array dimensions for the concatenation axis must match exactly, but along dimension 0, the array at index 0 has size 1658 and the array at index 1 has size 1657
-TRAIN_END_DATE = "2019-12-31"
-TEST_START_DATE = "2020-01-01"
-TEST_END_DATE = "2022-09-31"
-TRADE_START_DATE = "2022-10-01"
+TRAIN_START_DATE = "2014-01-06"
+TRAIN_END_DATE = "2020-07-31"
+TEST_START_DATE = "2020-08-01"
+TEST_END_DATE = "2021-10-01"
+TRADE_START_DATE = "2021-11-01"
 TRADE_END_DATE = "2022-12-14"
-# TRAIN_START_DATE = "2014-01-06"
-# TRAIN_END_DATE = "2020-07-31"
-# TEST_START_DATE = "2020-08-01"
-# TEST_END_DATE = "2021-10-01"
-# TRADE_START_DATE = "2021-11-01"
-# TRADE_END_DATE = "2022-12-14"
 
 
 
@@ -64,13 +58,13 @@ ENV_REWARD_SCALE = 1.0 # 0.01 # 1e-4
 TRAINED_MODEL_DIR = "trained_models"
 TENSORBOARD_LOG_DIR = "tensorboard_log"
 RESULTS_DIR = "results"
-MODEL_DESCRIPTION = "AddedDiversificationNoTradeReward"
+MODEL_DESCRIPTION = ""
 
 TEST = False
 MODEL = "recPPO"
 TRAIN_NEW_AGENT = True
 RETRAIN_AGENT = False
-TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_1673348238_CUSTOM_1d_AddedDiversificationNoTradeReward/best_model.zip"
+TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/recPPO_1673612690_SINGLE_1d_AddedDiversificationNoTradeReward/best_model.zip"
 TRAIN_TIMESTEPS = 1000000 # 1000000 #  750000
 
 

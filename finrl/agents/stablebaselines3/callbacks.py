@@ -3,7 +3,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.logger import Image
 
-from finrl.plot import plot_actions
+from finrl.plot import plot_actions, plot_states
 
 
 
@@ -20,11 +20,12 @@ def get_write_checkpoint_cb(freq, log_dir):
 
 class RenderCallback(BaseCallback):
 
-    def __init__(self, env, log_dir, freq=10000, verbose=0):
+    def __init__(self, env, log_dir, name, freq=10000, verbose=0):
         super(RenderCallback, self).__init__(verbose)
         self.eval_env = env
         self.log_dir = log_dir
         self.freq = freq
+        self.name = name
 
         self.n_calls = 0
 
@@ -50,7 +51,7 @@ class RenderCallback(BaseCallback):
                 action, _states = self.model.predict(test_obs, deterministic=True)
                 test_obs, rewards, dones, info = test_env.step(action)
                 if i == (len(self.eval_env.df.index.unique()) - 2):
-                    account_memory = test_env.env_method(method_name="save_asset_memory")
+                    state_memory = test_env.env_method(method_name="save_state_memory")
                     actions_memory = test_env.env_method(method_name="save_action_memory")
                 #                 state_memory=test_env.env_method(method_name="save_state_memory") # add current state to state memory
                 if dones[0]:
@@ -58,9 +59,14 @@ class RenderCallback(BaseCallback):
                     break
 
             if len(actions_memory)>0:
-                fig_per_stock, fig_all = plot_actions(self.eval_env.df, actions_memory[0])
-                self.logger.record("images/per_stpck", Image(fig_per_stock, "HWC"), exclude=("stdout", "log", "json", "csv"))
-                self.logger.record("images/all", Image(fig_all, "HWC"), exclude=("stdout", "log", "json", "csv"))
+                fig_per_stock = plot_actions(self.eval_env.df, actions_memory[0])
+                self.logger.record("images_{}/per_stock".format(self.name), Image(fig_per_stock, "HWC"), exclude=("stdout", "log", "json", "csv"))
+
+            if len(state_memory) > 0:
+                fig_states = plot_states(state_memory[0])
+                self.logger.record("images_{}/all".format(self.name), Image(fig_states, "HWC"), exclude=("stdout", "log", "json", "csv"))
+
+
 
             else:
                 print("PRINT WAS UNABLAE TO PLOT OMAGES: QALSO LOOK HERE FOR INDEIVIUDLA TB LOGGING")

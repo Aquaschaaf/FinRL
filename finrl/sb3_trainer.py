@@ -10,10 +10,11 @@ logger = logging.getLogger(__name__)
 
 class SB3Trainer:
 
-    def __init__(self, train_env, test_env):
+    def __init__(self, train_gym, test_gym):
 
-        self.train_env = train_env
-        self.test_env = test_env
+        self.train_gym = train_gym
+        self.train_env, _ = self.train_gym.get_sb_env()
+        self.test_gym = test_gym
 
     def get_model_dirs(self):
 
@@ -102,11 +103,12 @@ class SB3Trainer:
         logger.info(model)
         model_dir, tb_model_name = self.get_model_dirs()
         model = agent.train_model(model=model,
-                                        tb_log_name=tb_model_name,
-                                        total_timesteps=config.TRAIN_TIMESTEPS,
-                                        model_dir=model_dir,
-                                        test_env=self.test_env,
-                                        reset_timesteps=config.TRAIN_NEW_AGENT)  # 50000  1000000
+                                  tb_log_name=tb_model_name,
+                                  total_timesteps=config.TRAIN_TIMESTEPS,
+                                  model_dir=model_dir,
+                                  test_gym=self.test_gym,
+                                  train_gym=self.train_gym,
+                                  reset_timesteps=config.TRAIN_NEW_AGENT)  # 50000  1000000
 
         model.save(os.path.join(model_dir, 'rl_model_{}_steps.zip'.format(model.num_timesteps)))
 
