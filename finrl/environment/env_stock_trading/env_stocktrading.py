@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from typing import List
 
 import gym
@@ -12,7 +13,7 @@ from gym.utils import seeding
 from finrl.plot import plot_actions, plot_states
 from scipy.stats import entropy
 from finrl.environment.env_stock_trading.Broker import Broker
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 import logging
 import math
 
@@ -83,9 +84,12 @@ class StockTradingEnv(gym.Env):
         self.state = self._initiate_state()
         self.idle_threshold = idle_threshold
         self.performance_all_trades = 0
+        self.all_buy_price_low_rewards = 0
+        self.last_sale = 0
 
         self.no_trades_counter = 0
         self.cash_idx = 0
+        self.all_buy_Low_sellHigh_rewards = 0
         self.price_idxs = np.array(range(1, self.stock_dim + 1))
         self.depot_idxs = np.array(range(self.stock_dim + 1, self.stock_dim * 2 + 1))
         self.buy_price_idxs = np.array(range(self.stock_dim * 2 + 1, self.stock_dim * 3 + 1))
@@ -145,6 +149,8 @@ class StockTradingEnv(gym.Env):
                 if abs(actions[index]) > 0:
                     self.trades += 1
 
+                self.last_sale = self.day
+
                 self.sold_shares = True
 
             for index in buy_index:
@@ -203,7 +209,7 @@ class StockTradingEnv(gym.Env):
         buy_prices = [sm[self.buy_price_idxs][0] for sm in self.state_memory]
         all_total_value = [self.calculate_total_asset_value(sm) for sm in self.state_memory]
         all_features = [list(sm[self.buy_price_idxs[-1] + 1:]) for sm in self.state_memory]
-        f1, f2, f3, f4, f5, f6, f7, f8 = map(list, zip(*all_features))
+        f1, f2, f3, f4, f5, f6, f7, f8, f9 = map(list, zip(*all_features))
 
         fig, axs = plt.subplots(4,1)
         axs[0].plot(all_cash)
@@ -221,6 +227,7 @@ class StockTradingEnv(gym.Env):
         ax.plot(f6)
         ax.plot(f7)
         ax.plot(f8)
+        ax.plot(f9)
         plt.show()
 
 
@@ -257,17 +264,16 @@ class StockTradingEnv(gym.Env):
 
     def _make_plot(self):
 
-        img = plot_states(self.save_state_memory())
-        plt.imshow(img, interpolation='nearest')
-        plt.savefig(f"results/states_episode{self.episode}.png")
+        img_states = plot_states(self.save_state_memory())
+        # plt.imshow(img_states, interpolation='nearest')
+        # plt.savefig(f"results/states_episode{self.episode}.png")
 
-        img = plot_actions(self.df, self.save_action_memory())
-        plt.imshow(img, interpolation='nearest')
-        plt.savefig(f"results/actions_episode{self.episode}.png")
+        img_actions = plot_actions(self.df, self.save_action_memory())
+        # plt.imshow(img, interpolation='nearest')
+        # plt.savefig(f"results/actions_episode{self.episode}.png")
 
-        # plt.plot(self.asset_memory, "r")
-        # plt.savefig(f"results/account_value_trade_{self.episode}.png")
-        # plt.close()
+        return img_states, img_actions
+
 
     def step(self, actions):
 
@@ -291,12 +297,17 @@ class StockTradingEnv(gym.Env):
         # If done
         if self.terminal:
             # print(f"Episode: {self.episode}")
-            if self.make_plots and self.episode % 50 == 0:
-                self._make_plot()
+
+            if self.make_plots and self.episode % 15 == 0:
+                img_states, img_actions = self._make_plot()
+            else:
+                img_states, img_actions = None, None
             end_total_asset = self.calculate_total_asset_value(self.state)
 
             df_total_value = pd.DataFrame(self.asset_memory)
             tot_reward = (end_total_asset - self.asset_memory[0])  # initial_amount is only cash part of our initial asset
+            final_perf_pct = (end_total_asset - self.asset_memory[0]) / abs(self.asset_memory[0]) * 100
+
             df_total_value.columns = ["account_value"]
             df_total_value["date"] = self.date_memory
             df_total_value["daily_return"] = df_total_value["account_value"].pct_change(1)
@@ -369,7 +380,9 @@ class StockTradingEnv(gym.Env):
             #     avg_trade_perf, self.performance_all_trades, self.trades))
             # self.reward += avg_trade_perf
 
-            self.reward = avg_trade_perf * 100
+            self.reward = 0
+            self.reward += avg_trade_perf * 5
+            self.reward += final_perf_pct / 10
             # self.reward = tot_reward
 
             info = {"terminal/reward": self.reward,
@@ -377,8 +390,16 @@ class StockTradingEnv(gym.Env):
                     "terminal/average_trade_perf_reward": avg_trade_perf,
                     "terminal/depot_performance": tot_reward,
                     "terminal/episode_length": self.day,
-                    "terminal/number_of_trades": self.trades
+                    "terminal/number_of_trades": self.trades,
+                    "terminal/avg_buyLow_sellHigh_rewards": self.all_buy_Low_sellHigh_rewards / self.trades if self.trades !=0 else 0,
+                    "terminal/sum_train_rewards": np.sum(self.rewards_memory),
+                    "terminal/avg_buy_price_low_rewards": self.all_buy_price_low_rewards / self.day,
+                    "terminal/final_perf_pct": final_perf_pct,
                     }
+            if img_states is not None:
+                info["images/states"] = img_states
+            if img_actions is not None:
+                info["images/actions"] = img_actions
 
             # self.plot_state_memory()
 
@@ -387,9 +408,20 @@ class StockTradingEnv(gym.Env):
             return self.state, self.reward, self.terminal, info
 
         else:
+
+            if abs(actions[0]) < 0.1:
+                actions[0] = 0
+            price = self.state[self.price_idxs]
+            fake_reward = 0
+            if price > 5 and actions[0]>0:
+                fake_reward = -10
+            if price < 14 and actions[0]<0:
+                fake_reward = -10
+
+            orig_action = copy.deepcopy(actions)
             # action = Amount of stocks to buy/sell
-            actions = actions * self.hmax  # actions initially is scaled between 0 to 1
-            actions = actions.astype(int)  # convert into integer because we can't by fraction of shares
+            # actions = actions * self.hmax  # actions initially is scaled between 0 to 1
+            # actions = actions.astype(int)  # convert into integer because we can't by fraction of shares
 
             # actions[actions>0] = 1000
             # actions[actions<0] = -1000
@@ -421,6 +453,24 @@ class StockTradingEnv(gym.Env):
             begin_depot_performance = self.calculate_depot_performance(self.state)
             logger.debug("State after applying actions\n{}\nCurrent asset value: {}".format(self.conv_state2string(self.state), begin_total_asset))
 
+            buyLow_sellHigh_reward = 0
+            buying_penalty = 0
+            sell_index = actions < 0
+            buy_index = actions > 0
+
+            for s_i in sell_index:
+                if s_i:
+                    buyLow_sellHigh_reward += self.data.normalized_close
+
+            for b_i in buy_index:
+                if b_i:
+                    # buyLow_reward = 1 if self.data.normalized_close < 0.8 else -5
+                    # buyLow_sellHigh_reward += buyLow_reward
+                    buyLow_sellHigh_reward += 1 - self.data.normalized_close
+                    buying_penalty = 1
+
+            self.all_buy_Low_sellHigh_rewards += buyLow_sellHigh_reward
+
 
             if all(v == 0 for v in self.state[self.depot_idxs]):
                 depot_empty = True
@@ -448,7 +498,7 @@ class StockTradingEnv(gym.Env):
                 # # Only positive trades
                 # perf = np.max([0, perf])
 
-                trade_reward += perf_pct
+                trade_reward += perf_pct * 5
                 self.performance_all_trades += perf_pct
 
             # trade_reward *= 10
@@ -486,11 +536,22 @@ class StockTradingEnv(gym.Env):
             # depot_perf_reward = end_depot_value - begin_depot_value
             # depot_perf_reward = end_total_asset - begin_total_asset
 
+            no_trade_reward = 0 if self.no_trades_counter < 40 else -10
+            # no_trade_reward = 0
+
+            buy_price_low_reward = np.sum(self.state[self.price_idxs] - self.state[self.buy_price_idxs])
+            self.all_buy_price_low_rewards += buy_price_low_reward
+
             "https://ai.stackexchange.com/questions/10082/suitable-reward-function-for-trading-buy-and-sell-orders"
             self.reward = 0
-            self.reward += depot_perf_reward
+            self.reward += depot_perf_reward * 0.001
             self.reward += diversification_reward
             self.reward += trade_reward
+            # self.reward += buyLow_sellHigh_reward
+            # self.reward += no_trade_reward
+            # self.reward += buy_price_low_reward
+            self.reward += buying_penalty
+            self.reward += fake_reward
 
             self.rewards_memory.append(self.reward)
             self.reward = self.reward * self.reward_scaling
@@ -502,9 +563,12 @@ class StockTradingEnv(gym.Env):
             info = {"reward/diversification_reward": diversification_reward,
                     "reward/depot_performance_reward": depot_perf_reward,
                     "reward/trade_reward": trade_reward,
+                    "reward/buyLow_sellHigh_reward": buyLow_sellHigh_reward,
                     "reward/total_reward": self.reward,
                     "train/avg_perfroamce_all_trades": self.performance_all_trades/self.trades if self.trades !=0 else 0,
-                    "train/num_episode": self.episode
+                    "train/num_episode": self.episode,
+                    "train/no_trade_reward": no_trade_reward,
+                    "train/actions": orig_action[0]
 
                     }
 
@@ -533,6 +597,7 @@ class StockTradingEnv(gym.Env):
                 )
             )
             self.asset_memory = [previous_total_asset]
+        self.state[self.buy_price_idxs] = 0
 
         self.day = 0
         self.data = self.df.loc[self.day, :]
@@ -547,6 +612,9 @@ class StockTradingEnv(gym.Env):
         self.state_memory = []
         self.date_memory = [self._get_date()]
         self.no_trades_counter = 0
+        self.all_buy_Low_sellHigh_rewards = 0
+        self.all_buy_price_low_rewards = 0
+        self.last_sale = 0
 
         self.episode += 1
 
@@ -729,7 +797,9 @@ class StockTradingEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def get_sb_env(self):
+    def get_sb_env(self, normalize=True):
         e = DummyVecEnv([lambda: self])
+        if normalize:
+            e = VecNormalize(e, norm_obs=True, norm_reward=True, clip_obs=10.)
         obs = e.reset()
         return e, obs

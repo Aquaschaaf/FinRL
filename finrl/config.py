@@ -23,6 +23,7 @@ INDICATORS = [
     "dx_30",
     "close_30_sma",
     "close_60_sma",
+    "normalized_close"
 ]
 NORMALIZATION_WINDOW = 10
 CLEAN_STRATEGY = 'remove_cols' if not "m" in DATA_INTERVAL else "remove_rows"
@@ -60,12 +61,16 @@ TENSORBOARD_LOG_DIR = "tensorboard_log"
 RESULTS_DIR = "results"
 MODEL_DESCRIPTION = ""
 
-TEST = False
-MODEL = "recPPO"
-TRAIN_NEW_AGENT = True
-RETRAIN_AGENT = False
-TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/recPPO_1673612690_SINGLE_1d_AddedDiversificationNoTradeReward/best_model.zip"
-TRAIN_TIMESTEPS = 1000000 # 1000000 #  750000
+# ToDos:
+# Try to train with stacked dates as observation (= multiple days)
+# Try to stack dates: https://stable-baselines.readthedocs.io/en/master/_modules/stable_baselines/common/vec_env/vec_frame_stack.html
+# STack observations and use CNNLSTMPolicy
+TEST = True
+MODEL = "ppo"
+TRAIN_NEW_AGENT = False
+RETRAIN_AGENT = True
+TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_test_1674124612_SINGLE_1d_/rl_model_950000_steps.zip"
+TRAIN_TIMESTEPS = 10000000 # 1000000 #  750000
 
 
 # Model Parameters
@@ -79,7 +84,7 @@ PPO_PARAMS = {
 RECPPO_PARAMS = {
     "n_steps": 2048,
     "ent_coef": 0.01,
-    "learning_rate": 0.00025,
+    "learning_rate": 0.000001, #0.00025,
     "batch_size": 128,
 }
 
@@ -119,5 +124,5 @@ USE_TIME_ZONE_SELFDEFINED = 0  # 0 (default) or 1 (use the self defined)
 # ============================================================================
 # ============================ Summarys ======================================
 # ============================================================================
-MODEL_PARAMS = {"ppo":PPO_PARAMS, "recPPO":RECPPO_PARAMS, "a2c": A2C_PARAMS, "sac": SAC_PARAMS}
+MODEL_PARAMS = {"ppo":PPO_PARAMS, "recPPO":RECPPO_PARAMS, "a2c": A2C_PARAMS, "sac": SAC_PARAMS, "td3":TD3_PARAMS}
 DIRS = [RAW_DATA_SAVE_DIR, PREPRO_DATA_SAVE_DIR, TRAINED_MODEL_DIR, TENSORBOARD_LOG_DIR, RESULTS_DIR]

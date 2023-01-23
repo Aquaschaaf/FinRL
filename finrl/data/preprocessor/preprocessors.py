@@ -170,7 +170,18 @@ class FeatureEngineer:
                 if unique_ticker[i] == "^VIX":
                     logger.info("Skipping VIX for technical indicator extraction")
                     continue
-                try:
+
+                if indicator == "normalized_close":
+                    min = df[df.tic == unique_ticker[i]].close.expanding(min_periods=10).min()
+                    max = df[df.tic == unique_ticker[i]].close.expanding(min_periods=10).max()
+
+                    temp_indicator = ((df[df.tic == unique_ticker[i]].close - min) / (max - min)).to_frame()
+                    temp_indicator.columns = ['{}'.format(indicator)]
+                    temp_indicator["tic"] = unique_ticker[i]
+                    temp_indicator["datetime"] = df[df.tic == unique_ticker[i]]["datetime"].to_list()
+                    indicator_df = pd.concat([indicator_df, temp_indicator])
+
+                else:
                     # Calculate indicator based on StockDataframe
                     temp_indicator = stock[stock.tic == unique_ticker[i]][indicator]
                     temp_indicator = pd.DataFrame(temp_indicator)
@@ -179,8 +190,7 @@ class FeatureEngineer:
                     # temp_indicator["date"] = df[df.tic == unique_ticker[i]]["datetime"].to_list()
                     indicator_df = pd.concat([indicator_df, temp_indicator])
                     # indicator_df = indicator_df.append(temp_indicator, ignore_index=True)
-                except Exception as e:
-                    logger.error(e)
+
             try:
                 df = df.merge(indicator_df[["tic", "datetime", indicator]], on=["tic", "datetime"], how="left")
                 # df = df.merge(indicator_df[["tic", "date", indicator]], on=["tic", "date"], how="left")
