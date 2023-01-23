@@ -5,6 +5,7 @@ import time
 
 import numpy as np
 import pandas as pd
+from typing import Callable
 from stable_baselines3 import A2C
 from stable_baselines3 import DDPG
 from stable_baselines3 import PPO
@@ -28,6 +29,25 @@ NOISE = {
     "normal": NormalActionNoise,
     "ornstein_uhlenbeck": OrnsteinUhlenbeckActionNoise,
 }
+
+def linear_schedule(initial_value: float) -> Callable[[float], float]:
+    """
+    Linear learning rate schedule.
+
+    :param initial_value: Initial learning rate.
+    :return: schedule that computes
+      current learning rate depending on remaining progress
+    """
+    def func(progress_remaining: float) -> float:
+        """
+        Progress will decrease from 1 (beginning) to 0.
+
+        :param progress_remaining:
+        :return: current learning rate
+        """
+        return progress_remaining * initial_value
+
+    return func
 
 class DRLAgent:
     """Provides implementations for DRL algorithms
@@ -72,12 +92,14 @@ class DRLAgent:
             model_kwargs["action_noise"] = NOISE[model_kwargs["action_noise"]](
                 mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions)
             )
-        print(model_kwargs)
+        lr = linear_schedule(model_kwargs["learning_rate"])
+        del model_kwargs["learning_rate"]
         return MODELS[model_name](
             policy=policy,
             env=self.env,
             tensorboard_log=tensorboard_log,
             verbose=verbose,
+            learning_rate=lr,
             policy_kwargs=policy_kwargs,
             seed=seed,
             **model_kwargs,
@@ -92,7 +114,7 @@ class DRLAgent:
         if test_gym is not None and model_dir is not None:
             eval_freq = 10000
             callbacks.append(sb3_cbs.get_write_checkpoint_cb(eval_freq, model_dir))
-            callbacks.append(sb3_cbs.get_eval_cb(test_gym, model_dir, freq=eval_freq))
+            callbacks.append(sb3_cbs.get_eval_cb(test_gym.get_sb_env()[0], model_dir, freq=eval_freq))
 
         callbacks.append(sb3_cbs.RenderCallback(test_gym, model_dir, 'test', freq=eval_freq))
         callbacks.append(sb3_cbs.RenderCallback(train_gym, model_dir, 'train', freq=eval_freq))

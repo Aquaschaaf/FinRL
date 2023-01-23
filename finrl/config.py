@@ -67,10 +67,10 @@ MODEL_DESCRIPTION = ""
 # STack observations and use CNNLSTMPolicy
 TEST = True
 MODEL = "ppo"
-TRAIN_NEW_AGENT = False
-RETRAIN_AGENT = True
-TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_test_1674124612_SINGLE_1d_/rl_model_950000_steps.zip"
-TRAIN_TIMESTEPS = 10000000 # 1000000 #  750000
+TRAIN_NEW_AGENT = True
+RETRAIN_AGENT = False
+TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_test_1674487331_SINGLE_1d_/rl_model_50000_steps.zip"
+TRAIN_TIMESTEPS = 500000 # 1000000 #  750000
 
 
 # Model Parameters
@@ -78,7 +78,7 @@ A2C_PARAMS = {"n_steps": 5, "ent_coef": 0.01, "learning_rate": 0.0007}
 PPO_PARAMS = {
     "n_steps": 2048,
     "ent_coef": 0.01,
-    "learning_rate": 0.00025,
+    "learning_rate": 0.0003,
     "batch_size": 128,
 }
 RECPPO_PARAMS = {

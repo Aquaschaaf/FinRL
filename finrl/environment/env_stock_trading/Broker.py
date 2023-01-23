@@ -124,7 +124,7 @@ class Broker:
         owned_shares = np.array(state)[self.depot_idxs][index]
         buy_price = np.array(state)[self.buy_price_idxs][index]
 
-        amount = owned_shares * amount
+        amount = int(owned_shares * amount)
 
         if sell_fixed_amount is not None:
             amount = int(sell_fixed_amount / price)

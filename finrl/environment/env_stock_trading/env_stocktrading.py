@@ -117,6 +117,7 @@ class StockTradingEnv(gym.Env):
         ]  # the initial total asset is calculated by cash + sum (num_share_stock_i * price_stock_i)
         self.rewards_memory = []
         self.actions_memory = []
+        self.orig_actions_memory = []
         self.state_memory = (
             []
         )  # we need sometimes to preserve the state in the middle of trading process
@@ -164,6 +165,10 @@ class StockTradingEnv(gym.Env):
                 #     self.trades += 1
 
         return actions
+
+    def calculate_performance(self, old_val, new_val):
+        return (new_val - old_val) / abs(old_val)
+
 
 
     def calculate_total_asset_value(self, state):
@@ -385,6 +390,7 @@ class StockTradingEnv(gym.Env):
             self.reward += final_perf_pct / 10
             # self.reward = tot_reward
 
+
             info = {"terminal/reward": self.reward,
                     "terminal/sharpe_ratio": sharpe,
                     "terminal/average_trade_perf_reward": avg_trade_perf,
@@ -392,9 +398,11 @@ class StockTradingEnv(gym.Env):
                     "terminal/episode_length": self.day,
                     "terminal/number_of_trades": self.trades,
                     "terminal/avg_buyLow_sellHigh_rewards": self.all_buy_Low_sellHigh_rewards / self.trades if self.trades !=0 else 0,
-                    "terminal/sum_train_rewards": np.sum(self.rewards_memory),
+                    "terminal/avg_train_rewards": np.mean(self.rewards_memory),
                     "terminal/avg_buy_price_low_rewards": self.all_buy_price_low_rewards / self.day,
                     "terminal/final_perf_pct": final_perf_pct,
+                    "histograms/actions": [a[0] for a in self.orig_actions_memory],
+                    "histograms/rewards": self.rewards_memory
                     }
             if img_states is not None:
                 info["images/states"] = img_states
@@ -411,14 +419,9 @@ class StockTradingEnv(gym.Env):
 
             if abs(actions[0]) < 0.1:
                 actions[0] = 0
-            price = self.state[self.price_idxs]
-            fake_reward = 0
-            if price > 5 and actions[0]>0:
-                fake_reward = -10
-            if price < 14 and actions[0]<0:
-                fake_reward = -10
 
             orig_action = copy.deepcopy(actions)
+            self.orig_actions_memory.append(orig_action)
             # action = Amount of stocks to buy/sell
             # actions = actions * self.hmax  # actions initially is scaled between 0 to 1
             # actions = actions.astype(int)  # convert into integer because we can't by fraction of shares
@@ -493,13 +496,22 @@ class StockTradingEnv(gym.Env):
                 # diff = sell_price - buy_price
                 # perf = diff * amount
 
-                perf_pct = (sell_price - buy_price) / abs(buy_price) * 100
+                # Trade perfromance relative to total asset
+                # value_diff = sell_price * abs(actions[i]) - buy_price *  abs(actions[i])
+                # value_diff_pct = value_diff / begin_total_asset * 100
+                # trade_reward += value_diff_pct * 10
+                # self.performance_all_trades += value_diff_pct
+
+                # Trade perofrmance relative to buy_price
+                perf_pct = self.calculate_performance(buy_price, sell_price) * 100
+                trade_reward += perf_pct * 5
+                self.performance_all_trades += perf_pct
+
 
                 # # Only positive trades
                 # perf = np.max([0, perf])
 
-                trade_reward += perf_pct * 5
-                self.performance_all_trades += perf_pct
+
 
             # trade_reward *= 10
             # trade_reward = np.max([trade_reward, 0])
@@ -544,21 +556,19 @@ class StockTradingEnv(gym.Env):
 
             "https://ai.stackexchange.com/questions/10082/suitable-reward-function-for-trading-buy-and-sell-orders"
             self.reward = 0
-            self.reward += depot_perf_reward * 0.001
-            self.reward += diversification_reward
+            self.reward += depot_perf_reward
+            # self.reward += diversification_reward
             self.reward += trade_reward
             # self.reward += buyLow_sellHigh_reward
             # self.reward += no_trade_reward
             # self.reward += buy_price_low_reward
             self.reward += buying_penalty
-            self.reward += fake_reward
+            # self.reward += fake_reward
 
             self.rewards_memory.append(self.reward)
             self.reward = self.reward * self.reward_scaling
 
-            self.state_memory.append(
-                self.state
-            )  # add current state in state_recorder for each step
+            self.state_memory.append(self.state)  # add current state in state_recorder for each step
 
             info = {"reward/diversification_reward": diversification_reward,
                     "reward/depot_performance_reward": depot_perf_reward,
@@ -609,6 +619,7 @@ class StockTradingEnv(gym.Env):
         # self.iteration=self.iteration
         self.rewards_memory = []
         self.actions_memory = []
+        self.orig_actions_memory = []
         self.state_memory = []
         self.date_memory = [self._get_date()]
         self.no_trades_counter = 0
