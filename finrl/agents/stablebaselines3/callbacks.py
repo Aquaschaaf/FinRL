@@ -1,7 +1,10 @@
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.logger import Image
+from stable_baselines3.common.logger import Image, TensorBoardOutputFormat
+
+import tensorflow as tf
+import numpy as np
 
 from finrl.plot import plot_actions, plot_states
 
@@ -116,9 +119,20 @@ class TensorboardCallback(BaseCallback):
 
     def _on_step(self) -> bool:
 
+        # Get the SummaryWriter for logging histograms
+        sw = [of for of in self.logger.output_formats if isinstance(of, TensorBoardOutputFormat)][0].writer
+
+        # Log weights
+        if self.locals["dones"][0] and False:
+            weights = self.model.get_parameters()["policy"]
+            for layer, w_and_b in weights.items():
+                sw.add_histogram('weights/{}'.format(layer.replace(".", "/")), w_and_b, self.num_timesteps)
+
         for k, v in self.locals["infos"][0].items():
             if "images" in k:
                 self.logger.record("{}".format(k), Image(v, "HWC"),exclude=("stdout", "log", "json", "csv"))
+            elif 'histograms' in k:
+                sw.add_histogram('{}'.format(k), np.array(v), self.num_timesteps)
             else:
                 self.logger.record(key="{}".format(k), value=v)
 
