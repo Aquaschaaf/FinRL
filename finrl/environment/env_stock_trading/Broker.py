@@ -45,10 +45,10 @@ class Broker:
         return max_share
 
 
-    def _update_buy_prices(self, buy_price, buy_num_shares, owned_shares, price):
+    def _update_buy_prices(self, buy_price, buy_num_shares, owned_shares, price, transaction_cost):
 
 
-        both_prices = [buy_price, price]
+        both_prices = [buy_price, price * (1 + transaction_cost)]
         both_amounts = [owned_shares, buy_num_shares]
 
         weighted_avg = np.average(both_prices, weights=both_amounts)
@@ -56,7 +56,7 @@ class Broker:
         return weighted_avg
 
 
-    def buy_stock(self, index, amount, state, cap_pct=None):
+    def buy_stock(self, index, amount, state, cap_pct=None, buy_fixed_amount=None):
         """
     
         Parameters
@@ -73,6 +73,11 @@ class Broker:
         owned_shares = np.array(state)[self.depot_idxs][index]
         buy_price = np.array(state)[self.buy_price_idxs][index]
 
+        amount = (state[self.cash_idx] * amount) // (price * (1 + self.transaction_cost))
+
+        if buy_fixed_amount is not None:
+            amount = int(buy_fixed_amount / price)
+
         # check if the stock is able to buy - buy only if the price is > 0 (no missing data in this particular date)
         if state[index + 2 * self.stock_dim + 1] != True:
             # Check if enough cash is available - Dicide vaialbel cash by stock_price
@@ -83,7 +88,7 @@ class Broker:
             buy_num_shares = min([possible_shares, amount, amnt_pct_cap])
             # Update the buy prices based on wieghted mean if shares are supposed to be bought
             if buy_num_shares > 0:
-                buy_price = self._update_buy_prices(buy_price, buy_num_shares, owned_shares, price)
+                buy_price = self._update_buy_prices(buy_price, buy_num_shares, owned_shares, price, self.transaction_cost)
             # Calculate the price of the transaction
             buy_amount = price * buy_num_shares * (1 + self.transaction_cost)
             # Update the cash and the depot
@@ -103,6 +108,9 @@ class Broker:
 
             logger.debug("Tried to buy shares but: state[index + 2 * self.stock_dim + 1] == True")
 
+        if owned_shares == 0:
+            buy_price = 0
+
         depot = np.array(state)[self.depot_idxs]
         depot[index] = owned_shares
         buy_prices = np.array(state)[self.buy_price_idxs]
@@ -110,11 +118,16 @@ class Broker:
 
         return buy_num_shares, depot, buy_prices, buy_amount, transaction_cost
 
-    def sell_stock(self, index, amount, state):
+    def sell_stock(self, index, amount, state, sell_fixed_amount=None):
 
         price = np.array(state)[self.price_idxs][index]
         owned_shares = np.array(state)[self.depot_idxs][index]
         buy_price = np.array(state)[self.buy_price_idxs][index]
+
+        amount = owned_shares * amount
+
+        if sell_fixed_amount is not None:
+            amount = int(sell_fixed_amount / price)
 
         # check if the stock is able to sell, for simlicity we just add it in techical index
         if (state[index + 2 * self.stock_dim + 1] != True):

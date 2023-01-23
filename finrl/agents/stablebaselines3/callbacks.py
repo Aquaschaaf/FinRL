@@ -5,7 +5,8 @@ from stable_baselines3.common.logger import Image
 
 from finrl.plot import plot_actions, plot_states
 
-
+import logging
+logger = logging.getLogger(__name__)
 
 def get_write_checkpoint_cb(freq, log_dir):
     checkpoint_callback = CheckpointCallback(
@@ -45,28 +46,36 @@ class RenderCallback(BaseCallback):
             """make a prediction"""
             account_memory = []
             actions_memory = []
-            #         state_memory=[] #add memory pool to store states
+            # state_memory = []
+
             test_env.reset()
             for i in range(len(self.eval_env.df.index.unique())):
                 action, _states = self.model.predict(test_obs, deterministic=True)
                 test_obs, rewards, dones, info = test_env.step(action)
-                if i == (len(self.eval_env.df.index.unique()) - 2):
+
+                # Get the memory variables. For some reason they are empty when terminal is reached
+                if i == (len(self.eval_env.df.index.unique()) - 2) or i % 10 == 0:
                     state_memory = test_env.env_method(method_name="save_state_memory")
                     actions_memory = test_env.env_method(method_name="save_action_memory")
-                #                 state_memory=test_env.env_method(method_name="save_state_memory") # add current state to state memory
+                #   state_memory=test_env.env_method(method_name="save_state_memory") # add current state to state memory
+                # else:
+                #     state_memory, actions_memory = [], []
                 if dones[0]:
                     print("hit end!")
                     break
 
             if len(actions_memory)>0:
-                fig_per_stock = plot_actions(self.eval_env.df, actions_memory[0])
-                self.logger.record("images_{}/per_stock".format(self.name), Image(fig_per_stock, "HWC"), exclude=("stdout", "log", "json", "csv"))
-
+                try:
+                    fig_per_stock = plot_actions(self.eval_env.df, actions_memory[0])
+                    self.logger.record("images_{}/per_stock".format(self.name), Image(fig_per_stock, "HWC"), exclude=("stdout", "log", "json", "csv"))
+                except Exception as e:
+                    logger.error("FAILED TO LOG IMAGES: {}".format(e))
             if len(state_memory) > 0:
-                fig_states = plot_states(state_memory[0])
-                self.logger.record("images_{}/all".format(self.name), Image(fig_states, "HWC"), exclude=("stdout", "log", "json", "csv"))
-
-
+                try:
+                    fig_states = plot_states(state_memory[0])
+                    self.logger.record("images_{}/all".format(self.name), Image(fig_states, "HWC"), exclude=("stdout", "log", "json", "csv"))
+                except Exception as e:
+                    logger.error("FAILED TO LOG IMAGES: {}".format(e))
 
             else:
                 print("PRINT WAS UNABLAE TO PLOT OMAGES: QALSO LOOK HERE FOR INDEIVIUDLA TB LOGGING")
@@ -108,7 +117,10 @@ class TensorboardCallback(BaseCallback):
     def _on_step(self) -> bool:
 
         for k, v in self.locals["infos"][0].items():
-            self.logger.record(key="{}".format(k), value=v)
+            if "images" in k:
+                self.logger.record("{}".format(k), Image(v, "HWC"),exclude=("stdout", "log", "json", "csv"))
+            else:
+                self.logger.record(key="{}".format(k), value=v)
 
         try:
             self.logger.record(key="train/reward", value=self.locals["rewards"][0])

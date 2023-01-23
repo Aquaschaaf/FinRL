@@ -13,6 +13,9 @@ from pyfolio import timeseries
 from finrl import config
 from finrl.data.preprocessor.yahoodownloader import YahooDownloader
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def get_daily_return(df, value_col_name="account_value"):
     df = deepcopy(df)
@@ -128,19 +131,61 @@ def plot_signals_on_chart(gb, stock, actions, gs, num_plot=0):
     stock_hist.index = stock_hist.date
     stock_hist.index = pd.to_datetime(stock_hist.index)
 
-    merge = pd.merge(stock_hist, actions, how='left', left_index=True, right_index=True)[
-        ["date", "close", "Action"]].values
+    merge = pd.merge(stock_hist, actions, how='left', left_index=True, right_index=True)[["date", "close", "Action"]].values
+    # merge = pd.merge(stock_hist, actions, how='left', left_index=True, right_index=True)[["date", "normalized_close", "Action"]].values
 
-    buy_actions = np.argwhere(merge[:, -1] > 0).reshape((-1,))
-    sell_actions = np.argwhere(merge[:, -1] < 0).reshape((-1,))
-    buy_signals = merge[:, :2][buy_actions]
-    sell_signals = merge[:, :2][sell_actions]
+    max_plot_size = 100
+    min_plot_size = 10
 
-    ax = plt.subplot(gs[num_plot])
-    ax.plot(merge[:, 0], merge[:, 1])
-    ax.plot(buy_signals[:, 0], buy_signals[:, 1], 'og')
-    ax.plot(sell_signals[:, 0], sell_signals[:, 1], 'or')
-    ax.set_title("{}".format(stock))
+    try:
+
+        buy_actions = np.argwhere(merge[:, -1] > 0).reshape((-1,))
+        if len(buy_actions)>0:
+            buy_signals = merge[:, :2][buy_actions]
+            buy_amounts = merge[:, 2][buy_actions].flatten()
+            buy_amounts = np.array([a[0] for a in buy_amounts])
+        else:
+            buy_amounts = [0]
+            buy_signals = None
+
+        sell_actions = np.argwhere(merge[:, -1] < 0).reshape((-1,))
+        if len(sell_actions)>0:
+            sell_signals = merge[:, :2][sell_actions]
+            sell_amounts = merge[:, 2][sell_actions].flatten()
+            sell_amounts = np.array([a[0] for a in sell_amounts])
+        else:
+            sell_amounts = [0]
+            sell_signals = None
+
+        min_action = np.min([np.min(sell_amounts), np.min(buy_amounts), 0])
+        max_axtion = np.max([np.max(sell_amounts), np.max(buy_amounts)])
+        buy_sizes = np.interp(buy_amounts, (min_action, max_axtion), (min_plot_size, max_plot_size))
+        sell_sizes = np.interp(sell_amounts, (min_action, max_axtion), (min_plot_size, max_plot_size))
+
+        ax = plt.subplot(gs[num_plot])
+        ax.plot(merge[:, 0], merge[:, 1])
+        if buy_signals is not None:
+            ax.scatter(buy_signals[:, 0], buy_signals[:, 1], s=buy_sizes, alpha=0.5, c='g')
+
+        if sell_signals is not None:
+            ax.scatter(sell_signals[:, 0], sell_signals[:, 1], s=sell_sizes, alpha=0.5, c='r')
+
+        ax.set_title("{}".format(stock))
+
+    except Exception as e:
+        print("PLOT FAIL")
+        print(e)
+        print("M: ", merge)
+        print("M: ", merge.shape)
+
+        print("B: ", buy_actions)
+        print("BS: ", buy_signals)
+        print("BSize: ", buy_sizes)
+        print("S: ", sell_actions)
+        print("SS: ", sell_signals)
+        print("SSize: ", sell_sizes)
+
+        exit()
 
 
 def plot_actions(trade, df_actions):
@@ -151,6 +196,7 @@ def plot_actions(trade, df_actions):
     num_rows = int(np.round(np.sqrt(len(stock_ticker))))
     num_cols = int(np.ceil(np.sqrt(len(stock_ticker))))
 
+    plt.figure(figsize=(15, 10))
     gs = gridspec.GridSpec(num_rows, num_cols)  # height_ratios=[5, 1]
 
     if len(stock_ticker) == 1:
@@ -188,6 +234,8 @@ def plot_actions(trade, df_actions):
     img_data_perstock = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
     img_data_perstock = img_data_perstock.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
+    plt.close()
+
     return img_data_perstock
 
 def plot_states(df_states):
@@ -201,16 +249,22 @@ def plot_states(df_states):
     for s in stocks:
         weight_per_asset[s] = ((df_states["Price_{}".format(s)] * df_states["Shares_{}".format(s)]) / df_states.TotalValue).values
 
-    fig, axs = plt.subplots(2,1, figsize=(15,10))
+    fig, axs = plt.subplots(3,1, figsize=(15,10))
     axs[0].plot(df_states.index, df_states['TotalValue'].values)
     axs[0].set_title("TotalValue")
     axs[0].legend()
 
     axs[1].plot(df_states.index, weight_cash, label='cash')
+    axs[1].plot(df_states.index, df_states.col_12.values, label='NormedPrice')
     for w in weight_per_asset:
         axs[1].plot(df_states.index, weight_per_asset[w], label='{}'.format(w))
     axs[1].set_title("Weight per asset")
     axs[1].legend()
+
+    axs[2].plot(df_states.index, df_states["BuyPrice_{}".format(stocks[0])], label="BuyPrice_{}".format(stocks[0]))
+    axs[2].plot(df_states.index, df_states["Price_{}".format(stocks[0])], label="Price_{}".format(stocks[0]))
+    axs[2].set_title("Prices")
+    axs[2].legend()
 
     plt.tight_layout()
     fig = plt.gcf()
@@ -218,6 +272,7 @@ def plot_states(df_states):
     # # Now we can save it to a numpy array.
     img_data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
     img_data = img_data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    plt.close()
 
     return img_data
 

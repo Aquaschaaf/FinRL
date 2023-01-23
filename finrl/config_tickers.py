@@ -2,7 +2,7 @@ from __future__ import annotations
 
 BASELINE_TICKER = ["^DJI", "^GSPC"]
 
-SINGLE_TICKER = ["VZ"]
+SINGLE_TICKER = ["sine"]
 
 CUSTOM = ["AXP", "AMGN", "AAPL"]
 

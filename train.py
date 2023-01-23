@@ -84,11 +84,11 @@ ticker = config_tickers.TICKERS[config.TICKERS]
 df = DatasetFactory(ticker, ticker_list_name).create_dataset()
 
 train = data_split(df, config.TRAIN_START_DATE, config.TRAIN_END_DATE)
-# train = DataProcessor.normalize_data(train, config.INDICATORS, window=20)
+train = DataProcessor.normalize_data(train, config.INDICATORS, window=20)
 test = data_split(df, config.TEST_START_DATE, config.TEST_END_DATE)
-# test = DataProcessor.normalize_data(test, config.INDICATORS, window=20)
+test = DataProcessor.normalize_data(test, config.INDICATORS, window=20)
 trade = data_split(df, config.TRADE_START_DATE, config.TRADE_END_DATE)
-# trade = DataProcessor.normalize_data(trade, config.INDICATORS, window=20)
+trade = DataProcessor.normalize_data(trade, config.INDICATORS, window=20)
 
 logger.info("Num samples for Train: {} | Test: {} | Trade: {}".format(len(train), len(test), len(trade)))
 logger.info("Train data interval: {} - {}".format(train.head(1).date.values[0], train.tail(1).date.values[0]))
