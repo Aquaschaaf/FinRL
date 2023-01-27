@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-
+import traceback
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -131,8 +131,8 @@ def plot_signals_on_chart(gb, stock, actions, gs, num_plot=0):
     stock_hist.index = stock_hist.date
     stock_hist.index = pd.to_datetime(stock_hist.index)
 
-    merge = pd.merge(stock_hist, actions, how='left', left_index=True, right_index=True)[["date", "close", "Action"]].values
-    # merge = pd.merge(stock_hist, actions, how='left', left_index=True, right_index=True)[["date", "normalized_close", "Action"]].values
+    merge = pd.merge(stock_hist, actions, how='left', left_index=True, right_index=True)[["date", "close", "Action"]]
+    merge = merge[merge['Action'].notna()].values
 
     max_plot_size = 100
     min_plot_size = 10
@@ -143,7 +143,10 @@ def plot_signals_on_chart(gb, stock, actions, gs, num_plot=0):
         if len(buy_actions)>0:
             buy_signals = merge[:, :2][buy_actions]
             buy_amounts = merge[:, 2][buy_actions].flatten()
-            buy_amounts = np.array([a[0] for a in buy_amounts])
+            if not isinstance(buy_amounts[0], float):
+                buy_amounts = np.array([a[0] for a in buy_amounts])
+            buy_amounts = buy_amounts.astype(np.float32)
+
         else:
             buy_amounts = [0]
             buy_signals = None
@@ -152,13 +155,16 @@ def plot_signals_on_chart(gb, stock, actions, gs, num_plot=0):
         if len(sell_actions)>0:
             sell_signals = merge[:, :2][sell_actions]
             sell_amounts = merge[:, 2][sell_actions].flatten()
-            sell_amounts = np.array([a[0] for a in sell_amounts])
+            if not isinstance(sell_amounts[0], float):
+                sell_amounts = np.array([a[0] for a in sell_amounts])
+            sell_amounts = sell_amounts.astype(np.float32)
+
         else:
             sell_amounts = [0]
             sell_signals = None
 
         min_action = np.min([np.min(sell_amounts), np.min(buy_amounts), 0])
-        max_axtion = np.max([np.max(sell_amounts), np.max(buy_amounts)])
+        max_axtion = np.max([np.max(sell_amounts), np.max(buy_amounts), 1])
         buy_sizes = np.interp(buy_amounts, (min_action, max_axtion), (min_plot_size, max_plot_size))
         sell_sizes = np.interp(sell_amounts, (min_action, max_axtion), (min_plot_size, max_plot_size))
 
@@ -174,14 +180,18 @@ def plot_signals_on_chart(gb, stock, actions, gs, num_plot=0):
 
     except Exception as e:
         print("PLOT FAIL")
-        print(e)
+        print(e, traceback.format_exc())
         print("M: ", merge)
         print("M: ", merge.shape)
 
         print("B: ", buy_actions)
+        print("BA: ", buy_amounts)
+        print("BA t: ", type(buy_amounts))
+        print("BA t[0]: ", type(buy_amounts[0]))
         print("BS: ", buy_signals)
         print("BSize: ", buy_sizes)
         print("S: ", sell_actions)
+        print("S: ", sell_amounts)
         print("SS: ", sell_signals)
         print("SSize: ", sell_sizes)
 
@@ -252,7 +262,7 @@ def plot_states(df_states):
     fig, axs = plt.subplots(3,1, figsize=(15,10))
     axs[0].plot(df_states.index, df_states['TotalValue'].values)
     axs[0].set_title("TotalValue")
-    axs[0].legend()
+    # axs[0].legend()
 
     axs[1].plot(df_states.index, weight_cash, label='cash')
     axs[1].plot(df_states.index, df_states.col_12.values, label='NormedPrice')

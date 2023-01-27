@@ -5,8 +5,8 @@ import os
 # ============================================================================
 # ============================ Data ==========================================
 # ============================================================================
-TICKERS = "SINGLE"
-# TICKERS = "CUSTOM"
+# TICKERS = "SINGLE"
+TICKERS = "CUSTOM"
 # TICKERS = "DOW_30"
 DATA_INTERVAL = "1d"
 RAW_DATA_BASE_DIR = "datasets/raw"
@@ -59,7 +59,7 @@ ENV_REWARD_SCALE = 1.0 # 0.01 # 1e-4
 TRAINED_MODEL_DIR = "trained_models"
 TENSORBOARD_LOG_DIR = "tensorboard_log"
 RESULTS_DIR = "results"
-MODEL_DESCRIPTION = ""
+MODEL_DESCRIPTION = "MultidaysTestingCNN"
 
 # ToDos:
 # Try to train with stacked dates as observation (= multiple days)
@@ -69,8 +69,8 @@ TEST = True
 MODEL = "ppo"
 TRAIN_NEW_AGENT = True
 RETRAIN_AGENT = False
-TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_test_1674487331_SINGLE_1d_/rl_model_50000_steps.zip"
-TRAIN_TIMESTEPS = 500000 # 1000000 #  750000
+TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_test_1674661161_CUSTOM_1d_MultidaysTestingCNN/rl_model_270000_steps.zip"
+TRAIN_TIMESTEPS = 1000000 #  750000
 
 
 # Model Parameters

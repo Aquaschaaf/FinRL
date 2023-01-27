@@ -92,8 +92,12 @@ class DRLAgent:
             model_kwargs["action_noise"] = NOISE[model_kwargs["action_noise"]](
                 mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions)
             )
+
         lr = linear_schedule(model_kwargs["learning_rate"])
         del model_kwargs["learning_rate"]
+
+        policy_kwargs = {"normalize_images": False}
+
         return MODELS[model_name](
             policy=policy,
             env=self.env,
