@@ -93,7 +93,8 @@ class SB3Trainer:
         if config.MODEL == 'recPPO':
             policy = "MlpLstmPolicy"
         else:
-            policy = "MlpPolicy"
+            policy = "CnnPolicy"
+            # policy = "MlpPolicy"
 
         model = agent.get_model(config.MODEL, policy=policy, model_kwargs=model_params,
                                 tensorboard_log=config.TENSORBOARD_LOG_DIR)

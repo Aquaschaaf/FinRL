@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
+NEW_TIC_NAME = 'sine3'
+
 out_dir = "/home/matthias/Projects/FinRL/datasets/raw/1d/"
 df = pd.read_pickle("/home/matthias/Projects/FinRL/datasets/raw/1d/AAPL_2014-01-06_2022-12-13")
 
@@ -24,5 +26,6 @@ df.close.plot()
 # exit()
 start = (df.iloc[0].date)
 end = (df.iloc[-1].date)
-pd.to_pickle(df, os.path.join(out_dir, 'sine_{}_{}'.format(start,end)))
+df.tic = [NEW_TIC_NAME] * len(df)
+pd.to_pickle(df, os.path.join(out_dir, '{}_{}_{}'.format(NEW_TIC_NAME, start,end)))
 

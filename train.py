@@ -38,6 +38,7 @@ from pandas.conftest import axis
 
 from finrl.agents.stablebaselines3.models import DRLAgent
 from finrl.environment.env_stock_trading.env_stocktrading import StockTradingEnv
+from finrl.environment.env_stock_trading.env_stocktrading_multiday import StockTradingEnvMd
 from finrl.data.preprocessor.preprocessors import data_split
 from finrl.data.dataset import DatasetFactory
 from finrl.data.data_processor import DataProcessor
@@ -84,11 +85,11 @@ ticker = config_tickers.TICKERS[config.TICKERS]
 df = DatasetFactory(ticker, ticker_list_name).create_dataset()
 
 train = data_split(df, config.TRAIN_START_DATE, config.TRAIN_END_DATE)
-train = DataProcessor.normalize_data(train, config.INDICATORS, window=20)
+# train = DataProcessor.normalize_data(train, config.INDICATORS, window=20)
 test = data_split(df, config.TEST_START_DATE, config.TEST_END_DATE)
-test = DataProcessor.normalize_data(test, config.INDICATORS, window=20)
+# test = DataProcessor.normalize_data(test, config.INDICATORS, window=20)
 trade = data_split(df, config.TRADE_START_DATE, config.TRADE_END_DATE)
-trade = DataProcessor.normalize_data(trade, config.INDICATORS, window=20)
+# trade = DataProcessor.normalize_data(trade, config.INDICATORS, window=20)
 
 logger.info("Num samples for Train: {} | Test: {} | Trade: {}".format(len(train), len(test), len(trade)))
 logger.info("Train data interval: {} - {}".format(train.head(1).date.values[0], train.tail(1).date.values[0]))
@@ -153,9 +154,9 @@ if config.USE_TURBULENCE:
 else:
     t_thresh = None
 
-e_train_gym = StockTradingEnv(df=train, idle_threshold=15, make_plots=True, **env_kwargs)
-e_test_gym = StockTradingEnv(df=test, **env_kwargs)
-e_trade_gym = StockTradingEnv(df=trade, turbulence_threshold=t_thresh, risk_indicator_col="vix", make_plots=True, **env_kwargs)
+e_train_gym = StockTradingEnvMd(df=train, idle_threshold=15, num_past_days=40, make_plots=True, **env_kwargs)
+e_test_gym = StockTradingEnvMd(df=test, num_past_days=40, **env_kwargs)
+e_trade_gym = StockTradingEnvMd(df=trade, num_past_days=40, turbulence_threshold=t_thresh, risk_indicator_col="vix", make_plots=True, **env_kwargs)
 
 ## Environment for Training
 env_train, _ = e_train_gym.get_sb_env()
