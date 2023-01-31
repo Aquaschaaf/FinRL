@@ -2,10 +2,11 @@ from __future__ import annotations
 
 BASELINE_TICKER = ["^DJI", "^GSPC"]
 
-SINGLE_TICKER = ["VZ"]
-# SINGLE_TICKER = ["sine"]
+# SINGLE_TICKER = ["VZ"]
+SINGLE_TICKER = ["sine"]
 
-CUSTOM = ["sine", "sine2", "sine3"]
+CUSTOM = ["sine", "neg_sine"]
+# CUSTOM = ["sine", "sine2", "sine3"]
 # CUSTOM = ["AXP", "AMGN", "AAPL"]
 
 # Dow 30 constituents in 2021/10

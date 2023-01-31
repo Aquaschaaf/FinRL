@@ -265,7 +265,7 @@ def plot_states(df_states):
     # axs[0].legend()
 
     axs[1].plot(df_states.index, weight_cash, label='cash')
-    axs[1].plot(df_states.index, df_states.col_12.values, label='NormedPrice')
+    # axs[1].plot(df_states.index, df_states.col_12.values, label='NormedPrice')
     for w in weight_per_asset:
         axs[1].plot(df_states.index, weight_per_asset[w], label='{}'.format(w))
     axs[1].set_title("Weight per asset")

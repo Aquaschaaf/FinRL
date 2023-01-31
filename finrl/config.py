@@ -59,7 +59,7 @@ ENV_REWARD_SCALE = 1.0 # 0.01 # 1e-4
 TRAINED_MODEL_DIR = "trained_models"
 TENSORBOARD_LOG_DIR = "tensorboard_log"
 RESULTS_DIR = "results"
-MODEL_DESCRIPTION = "MultidaysTestingCNN"
+MODEL_DESCRIPTION = "MultiSine"
 
 # ToDos:
 # Try to train with stacked dates as observation (= multiple days)
@@ -67,9 +67,11 @@ MODEL_DESCRIPTION = "MultidaysTestingCNN"
 # STack observations and use CNNLSTMPolicy
 TEST = True
 MODEL = "ppo"
+# POLICY = "CustomCnnPolicy"
+POLICY = "MlpPolicy"
 TRAIN_NEW_AGENT = True
 RETRAIN_AGENT = False
-TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_test_1674661161_CUSTOM_1d_MultidaysTestingCNN/rl_model_270000_steps.zip"
+TRAINED_AGENT_PATH = "/home/matthias/Projects/FinRL/trained_models/ppo_test_1674826068_CUSTOM_1d_MultiSine/rl_model_20000_steps.zip"
 TRAIN_TIMESTEPS = 1000000 #  750000
 
 

@@ -728,8 +728,18 @@ class StockTradingEnvMd(gym.Env):
         state_new = copy.deepcopy(self.state)
         state_new[:, :-1] = state_new[:, 1:]
 
-        new_close = self.data.loc[self.day].close.values.tolist()
-        new_indicators = [self.data.loc[self.day][tech].values.tolist() for tech in self.tech_indicator_list]
+        new_close = self.data.loc[self.day].close
+        if not isinstance(new_close, float):
+            new_close = new_close.values.tolist()
+
+        new_indicators = []
+        for tech in self.tech_indicator_list:
+            ni = self.data.loc[self.day][tech]
+            if not isinstance(ni, float):
+                ni = new_close.values.tolist()
+            else:
+                ni = [ni]
+            new_indicators.append(ni)
         new_indicators = [item for sublist in new_indicators for item in sublist]
 
         state_new[self.price_idxs, -1] = new_close

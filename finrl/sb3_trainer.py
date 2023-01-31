@@ -5,8 +5,15 @@ import logging
 from finrl import config
 from finrl import config_tickers
 from finrl.agents.stablebaselines3.models import DRLAgent
+from finrl.agents.stablebaselines3.custom_policies import CustomCNN
 
 logger = logging.getLogger(__name__)
+
+CUSTOM_POLICIES = {"CustomCnnPolicy":
+                       {"policy": "CnnPolicy",
+                        'kwargs': dict(features_extractor_class=CustomCNN,
+                                       features_extractor_kwargs=dict(features_dim=128), )}
+                }
 
 class SB3Trainer:
 
@@ -90,13 +97,16 @@ class SB3Trainer:
         agent = DRLAgent(env=self.train_env)
         model_params = config.MODEL_PARAMS[config.MODEL]
 
-        if config.MODEL == 'recPPO':
-            policy = "MlpLstmPolicy"
+        if config.POLICY.startswith("Custom"):
+            policy_def = CUSTOM_POLICIES[config.POLICY]
         else:
-            policy = "CnnPolicy"
-            # policy = "MlpPolicy"
+            policy_def = {"policy": config.POLICY, "kwargs": None}
 
-        model = agent.get_model(config.MODEL, policy=policy, model_kwargs=model_params,
+
+        model = agent.get_model(config.MODEL,
+                                policy=policy_def["policy"],
+                                policy_kwargs=policy_def["kwargs"],
+                                model_kwargs=model_params,
                                 tensorboard_log=config.TENSORBOARD_LOG_DIR)
         if config.RETRAIN_AGENT:
             model = self.setup_model_for_retraining(model)

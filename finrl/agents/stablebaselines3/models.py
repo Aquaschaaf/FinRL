@@ -96,7 +96,7 @@ class DRLAgent:
         lr = linear_schedule(model_kwargs["learning_rate"])
         del model_kwargs["learning_rate"]
 
-        policy_kwargs = {"normalize_images": False}
+        # policy_kwargs[normalize_images": False}
 
         return MODELS[model_name](
             policy=policy,

@@ -154,9 +154,9 @@ if config.USE_TURBULENCE:
 else:
     t_thresh = None
 
-e_train_gym = StockTradingEnvMd(df=train, idle_threshold=15, num_past_days=40, make_plots=True, **env_kwargs)
-e_test_gym = StockTradingEnvMd(df=test, num_past_days=40, **env_kwargs)
-e_trade_gym = StockTradingEnvMd(df=trade, num_past_days=40, turbulence_threshold=t_thresh, risk_indicator_col="vix", make_plots=True, **env_kwargs)
+e_train_gym = StockTradingEnv(df=train, idle_threshold=15, make_plots=True, **env_kwargs)
+e_test_gym = StockTradingEnv(df=test, **env_kwargs)
+e_trade_gym = StockTradingEnv(df=trade, turbulence_threshold=t_thresh, risk_indicator_col="vix", make_plots=True, **env_kwargs)
 
 ## Environment for Training
 env_train, _ = e_train_gym.get_sb_env()

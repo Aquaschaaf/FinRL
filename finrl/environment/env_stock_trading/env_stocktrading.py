@@ -463,13 +463,13 @@ class StockTradingEnv(gym.Env):
 
             for s_i in sell_index:
                 if s_i:
-                    buyLow_sellHigh_reward += self.data.normalized_close
+                    buyLow_sellHigh_reward += self.data.normalized_close.values[s_i]
 
             for b_i in buy_index:
                 if b_i:
                     # buyLow_reward = 1 if self.data.normalized_close < 0.8 else -5
                     # buyLow_sellHigh_reward += buyLow_reward
-                    buyLow_sellHigh_reward += 1 - self.data.normalized_close
+                    buyLow_sellHigh_reward += 1 - self.data.normalized_close.values[b_i]
                     buying_penalty = 1
 
             self.all_buy_Low_sellHigh_rewards += buyLow_sellHigh_reward
